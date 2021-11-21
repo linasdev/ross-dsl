@@ -1,14 +1,14 @@
 use regex_lexer::{Lexer, LexerBuilder};
 
-#[derive(Debug)]
-pub enum Token<'a> {
+#[derive(Debug, Clone)]
+pub enum Token {
     Keyword(KeywordToken),
     Symbol(SymbolToken),
     Data(DataToken),
-    Text(&'a str),
+    Text(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum KeywordToken {
     Let,
     Do,
@@ -16,12 +16,13 @@ pub enum KeywordToken {
     Fire,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum DataToken {
     Integer(i64),
+    Boolean(bool),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum SymbolToken {
     Semicolon,
     Colon,
@@ -41,21 +42,22 @@ pub enum TokenizerError {
 }
 
 impl Tokenizer {
-    pub fn tokenize_and_iterate(text: &str, mut closure: Box<dyn FnMut(Token)>) -> Result<(), TokenizerError> {
+    pub fn tokenize(text: &str) -> Result<Vec<Token>, TokenizerError> {
         let lexer = Self::build_lexer()?;
-        let mut tokens = lexer.tokens(text);
+        let mut token_iterator = lexer.tokens(text);
+        let mut tokens = vec!();
 
-        while let Some(token) = tokens.next() {
-            closure(token);
+        while let Some(token) = token_iterator.next() {
+            tokens.push(token);
         }
 
-        Ok(())
+        Ok(tokens)
     }
 
-    fn build_lexer<'a>() -> Result<Lexer<'a, Token<'a>>, TokenizerError> {
+    fn build_lexer<'a>() -> Result<Lexer<'a, Token>, TokenizerError> {
         Ok(LexerBuilder::new()
             .token(r"\s+", |_| None)
-            .token(r"(_|[a-zA-Z])[a-zA-Z_0-9]*", |token| Some(Token::Text(token)))
+            .token(r"(_|[a-zA-Z])[a-zA-Z_0-9]*", |token| Some(Token::Text(String::from(token))))
             .token(r"let", |_| Some(Token::Keyword(KeywordToken::Let)))
             .token(r"do", |_| Some(Token::Keyword(KeywordToken::Do)))
             .token(r"match", |_| Some(Token::Keyword(KeywordToken::Match)))
@@ -69,6 +71,7 @@ impl Tokenizer {
             .token(r"\}", |_| Some(Token::Symbol(SymbolToken::CloseBrace)))
             .token(r"=", |_| Some(Token::Symbol(SymbolToken::EqualSign)))
             .token(r"-?[0-9]+", |token| Some(Token::Data(DataToken::Integer(token.parse().unwrap()))))
+            .token(r"(true|false)", |token| Some(Token::Data(DataToken::Boolean(token.parse().unwrap()))))
             .build()?)
     }
 }
