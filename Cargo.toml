@@ -1,0 +1,11 @@
+[package]
+name = "ross-dsl"
+version = "1.0.0"
+authors = ["Linas Nikiperavičius <linas@linasdev.com>"]
+edition = "2018"
+license-file = "LICENSE.md"
+description = "A domain specific language to program Rusty Old Smart System devices"
+repository = "https://github.com/linasdev/ross-dsl"
+readme = "README.md"
+
+[dependencies]
