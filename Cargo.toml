@@ -9,3 +9,5 @@ repository = "https://github.com/linasdev/ross-dsl"
 readme = "README.md"
 
 [dependencies]
+regex-lexer = "0.1.0"
+regex = "1.5.4"
