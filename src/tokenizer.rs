@@ -57,6 +57,7 @@ impl Tokenizer {
     fn build_lexer<'a>() -> Result<Lexer<'a, Token>, TokenizerError> {
         Ok(LexerBuilder::new()
             .token(r"\s+", |_| None)
+            .token(r"//.*\n", |_| None)
             .token(r"(_|[a-zA-Z])[a-zA-Z_0-9]*", |token| Some(Token::Text(String::from(token))))
             .token(r"let", |_| Some(Token::Keyword(KeywordToken::Let)))
             .token(r"do", |_| Some(Token::Keyword(KeywordToken::Do)))
