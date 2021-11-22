@@ -55,6 +55,8 @@ pub enum ParserError {
     UnknownExtractor(String),
     UnknownFilter(String),
     UnknownProducer(String),
+    TooManyItemsInStatement,
+    TooFewItemsInStatement,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -166,10 +168,32 @@ impl<'a> Parser {
     fn parse_match_statement(token_iterator: &mut Iter<Token>, variable_map: &BTreeMap<String, Variable>) -> Result<Matcher, ParserError> {
         match_symbol_token!(token_iterator, SymbolToken::OpenBrace);
 
-        let extractor = Self::parse_extractor(token_iterator, variable_map)?;
-        let filter = Self::parse_filter(token_iterator, variable_map)?;
+        let mut sub_token_iterator = token_iterator.clone();
+        let mut item_count = 0;
 
-        match_symbol_token!(token_iterator, SymbolToken::CloseBrace);
+        while let Some(token) = token_iterator.next() {
+            match token {
+                Token::Symbol(SymbolToken::Semicolon) => item_count += 1,
+                Token::Symbol(SymbolToken::CloseBrace) => break,
+                _ => {}
+            }
+        }
+
+        if item_count > 2 {
+            return Err(ParserError::TooManyItemsInStatement);
+        }
+
+        if item_count == 0 {
+            return Err(ParserError::TooFewItemsInStatement);
+        }
+
+        let extractor = if item_count == 1 {
+            Box::new(NoneExtractor::new())
+        } else {
+            Self::parse_extractor(&mut sub_token_iterator, variable_map)?
+        };
+
+        let filter = Self::parse_filter(&mut sub_token_iterator, variable_map)?;
 
         Ok(Matcher {
             extractor,
@@ -180,10 +204,32 @@ impl<'a> Parser {
     fn parse_fire_statement(token_iterator: &mut Iter<Token>, variable_map: &BTreeMap<String, Variable>) -> Result<(Box<dyn Extractor>, Box<dyn Producer>), ParserError> {
         match_symbol_token!(token_iterator, SymbolToken::OpenBrace);
 
-        let extractor = Self::parse_extractor(token_iterator, variable_map)?;
-        let producer = Self::parse_producer(token_iterator, variable_map)?;
+        let mut sub_token_iterator = token_iterator.clone();
+        let mut item_count = 0;
 
-        match_symbol_token!(token_iterator, SymbolToken::CloseBrace);
+        while let Some(token) = token_iterator.next() {
+            match token {
+                Token::Symbol(SymbolToken::Semicolon) => item_count += 1,
+                Token::Symbol(SymbolToken::CloseBrace) => break,
+                _ => {}
+            }
+        }
+
+        if item_count > 2 {
+            return Err(ParserError::TooManyItemsInStatement);
+        }
+
+        if item_count == 0 {
+            return Err(ParserError::TooFewItemsInStatement);
+        }
+
+        let extractor = if item_count == 1 {
+            Box::new(NoneExtractor::new())
+        } else {
+            Self::parse_extractor(&mut sub_token_iterator, variable_map)?
+        };
+
+        let producer = Self::parse_producer(&mut sub_token_iterator, variable_map)?;
 
         Ok((extractor, producer))
     }
