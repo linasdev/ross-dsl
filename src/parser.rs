@@ -465,7 +465,7 @@ impl<'a> Parser {
         prepare_variable!(variable_map, BUTTON_PRESSED_EVENT_CODE);
         prepare_variable!(variable_map, BUTTON_RELEASED_EVENT_CODE);
         prepare_variable!(variable_map, INTERNAL_SYSTEM_TICK_EVENT_CODE);
-        prepare_variable!(variable_map, PROGRAMMER_START_EVENT_PROCESSOR_UPLOAD_EVENT_CODE);
+        prepare_variable!(variable_map, PROGRAMMER_START_CONFIG_UPLOAD_EVENT_CODE);
     }
 }
 
