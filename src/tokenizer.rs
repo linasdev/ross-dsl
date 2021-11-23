@@ -38,14 +38,14 @@ pub struct Tokenizer {}
 
 #[derive(Debug)]
 pub enum TokenizerError {
-    LexerError(regex::Error)
+    LexerError(regex::Error),
 }
 
 impl Tokenizer {
     pub fn tokenize(text: &str) -> Result<Vec<Token>, TokenizerError> {
         let lexer = Self::build_lexer()?;
         let mut token_iterator = lexer.tokens(text);
-        let mut tokens = vec!();
+        let mut tokens = vec![];
 
         while let Some(token) = token_iterator.next() {
             tokens.push(token);
@@ -58,7 +58,9 @@ impl Tokenizer {
         Ok(LexerBuilder::new()
             .token(r"\s+", |_| None)
             .token(r"//.*\n", |_| None)
-            .token(r"(_|[a-zA-Z])[a-zA-Z_0-9]*", |token| Some(Token::Text(String::from(token))))
+            .token(r"(_|[a-zA-Z])[a-zA-Z_0-9]*", |token| {
+                Some(Token::Text(String::from(token)))
+            })
             .token(r"let", |_| Some(Token::Keyword(KeywordToken::Let)))
             .token(r"do", |_| Some(Token::Keyword(KeywordToken::Do)))
             .token(r"match", |_| Some(Token::Keyword(KeywordToken::Match)))
@@ -67,12 +69,18 @@ impl Tokenizer {
             .token(r":", |_| Some(Token::Symbol(SymbolToken::Colon)))
             .token(r",", |_| Some(Token::Symbol(SymbolToken::Comma)))
             .token(r"\(", |_| Some(Token::Symbol(SymbolToken::OpenParenthesis)))
-            .token(r"\)", |_| Some(Token::Symbol(SymbolToken::CloseParenthesis)))
+            .token(r"\)", |_| {
+                Some(Token::Symbol(SymbolToken::CloseParenthesis))
+            })
             .token(r"\{", |_| Some(Token::Symbol(SymbolToken::OpenBrace)))
             .token(r"\}", |_| Some(Token::Symbol(SymbolToken::CloseBrace)))
             .token(r"=", |_| Some(Token::Symbol(SymbolToken::EqualSign)))
-            .token(r"-?[0-9]+", |token| Some(Token::Data(DataToken::Integer(token.parse().unwrap()))))
-            .token(r"(true|false)", |token| Some(Token::Data(DataToken::Boolean(token.parse().unwrap()))))
+            .token(r"-?[0-9]+", |token| {
+                Some(Token::Data(DataToken::Integer(token.parse().unwrap())))
+            })
+            .token(r"(true|false)", |token| {
+                Some(Token::Data(DataToken::Boolean(token.parse().unwrap())))
+            })
             .build()?)
     }
 }
