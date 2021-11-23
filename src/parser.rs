@@ -2,7 +2,8 @@ use std::slice::Iter;
 use std::collections::BTreeMap;
 use std::convert::TryInto;
 
-use ross_config::{Config, Value};
+use ross_config::Value;
+use ross_config::config::Config;
 use ross_config::event_processor::EventProcessor;
 use ross_config::matcher::Matcher;
 use ross_config::extractor::*;
