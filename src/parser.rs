@@ -5,10 +5,10 @@ use std::slice::Iter;
 use ross_config::config::Config;
 use ross_config::event_processor::EventProcessor;
 use ross_config::extractor::*;
-use ross_config::filter::state_filter::*;
+use ross_config::filter::state::*;
 use ross_config::filter::*;
 use ross_config::matcher::Matcher;
-use ross_config::producer::state_producer::*;
+use ross_config::producer::state::*;
 use ross_config::producer::*;
 use ross_config::Value;
 use ross_protocol::event::event_code::*;
@@ -520,7 +520,7 @@ impl<'a> Parser {
 
         prepare_variable!(variable_map, BOOTLOADER_HELLO_EVENT_CODE);
         prepare_variable!(variable_map, PROGRAMMER_HELLO_EVENT_CODE);
-        prepare_variable!(variable_map, PROGRAMMER_START_UPLOAD_EVENT_CODE);
+        prepare_variable!(variable_map, PROGRAMMER_START_FIRMWARE_UPGRADE_EVENT_CODE);
         prepare_variable!(variable_map, ACK_EVENT_CODE);
         prepare_variable!(variable_map, DATA_EVENT_CODE);
         prepare_variable!(variable_map, CONFIGURATOR_HELLO_EVENT_CODE);
@@ -528,7 +528,7 @@ impl<'a> Parser {
         prepare_variable!(variable_map, BUTTON_PRESSED_EVENT_CODE);
         prepare_variable!(variable_map, BUTTON_RELEASED_EVENT_CODE);
         prepare_variable!(variable_map, INTERNAL_SYSTEM_TICK_EVENT_CODE);
-        prepare_variable!(variable_map, PROGRAMMER_START_CONFIG_UPLOAD_EVENT_CODE);
+        prepare_variable!(variable_map, PROGRAMMER_START_CONFIG_UPGRADE_EVENT_CODE);
     }
 }
 
