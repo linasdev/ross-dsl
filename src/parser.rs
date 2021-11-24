@@ -529,6 +529,7 @@ impl<'a> Parser {
         prepare_variable!(variable_map, BUTTON_RELEASED_EVENT_CODE);
         prepare_variable!(variable_map, INTERNAL_SYSTEM_TICK_EVENT_CODE);
         prepare_variable!(variable_map, PROGRAMMER_START_CONFIG_UPGRADE_EVENT_CODE);
+        prepare_variable!(variable_map, PROGRAMMER_SET_DEVICE_ADDRESS_EVENT_CODE);
     }
 }
 
