@@ -69,7 +69,7 @@ enum Variable {
     Boolean(bool),
 }
 
-impl<'a> Parser {
+impl Parser {
     pub fn parse(text: &str) -> Result<Config, ParserError> {
         let mut initial_state = BTreeMap::new();
         let mut variable_map = BTreeMap::new();
@@ -114,10 +114,10 @@ impl<'a> Parser {
         })
     }
 
-    fn parse_let_statement(
+    fn parse_let_statement<'a>(
         token_iterator: &mut Iter<Token>,
         state_name: &mut String,
-    ) -> Result<Value, ParserError> {
+    ) -> Result<Value<'a>, ParserError> {
         *state_name = match_text_token!(token_iterator);
 
         match_symbol_token!(token_iterator, SymbolToken::Colon);
@@ -274,6 +274,14 @@ impl<'a> Parser {
             }
 
             return Ok(Box::new(EventCodeExtractor::new()));
+        }
+
+        if extractor_type == "PacketExtractor" {
+            if arguments.len() != 0 {
+                return Err(ParserError::WrongArgumentCount);
+            }
+
+            return Ok(Box::new(PacketExtractor::new()));
         }
 
         Err(ParserError::UnknownExtractor(extractor_type))
@@ -449,6 +457,18 @@ impl<'a> Parser {
                     .try_into()
                     .map_err(|_| ParserError::DataError)?,
                 arguments[2]
+                    .try_into()
+                    .map_err(|_| ParserError::DataError)?,
+            )));
+        }
+
+        if producer_type == "PacketProducer" {
+            if arguments.len() != 1 {
+                return Err(ParserError::WrongArgumentCount);
+            }
+
+            return Ok(Box::new(PacketProducer::new(
+                arguments[0]
                     .try_into()
                     .map_err(|_| ParserError::DataError)?,
             )));
