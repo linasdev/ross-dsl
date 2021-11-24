@@ -1,2 +1,5 @@
-pub mod parser;
-pub mod tokenizer;
+mod parser;
+pub use parser::{Parser, ParserError};
+
+mod tokenizer;
+pub use tokenizer::TokenizerError;
