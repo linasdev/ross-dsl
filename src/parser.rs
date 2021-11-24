@@ -82,9 +82,9 @@ impl Parser {
 
         while let Some(token) = token_iterator.next() {
             match token {
-                Token::Keyword(KeywordToken::Let) => {
+                Token::Keyword(KeywordToken::Store) => {
                     let mut state_name = String::new();
-                    let state = Self::parse_let_statement(&mut token_iterator, &mut state_name)?;
+                    let state = Self::parse_store_statement(&mut token_iterator, &mut state_name)?;
 
                     let mut state_index = 0;
 
@@ -114,7 +114,7 @@ impl Parser {
         })
     }
 
-    fn parse_let_statement<'a>(
+    fn parse_store_statement<'a>(
         token_iterator: &mut Iter<Token>,
         state_name: &mut String,
     ) -> Result<Value<'a>, ParserError> {

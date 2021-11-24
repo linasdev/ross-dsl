@@ -10,7 +10,7 @@ pub enum Token {
 
 #[derive(Debug, Clone)]
 pub enum KeywordToken {
-    Let,
+    Store,
     Do,
     Match,
     Fire,
@@ -61,7 +61,7 @@ impl Tokenizer {
             .token(r"(_|[a-zA-Z])[a-zA-Z_0-9]*", |token| {
                 Some(Token::Text(String::from(token)))
             })
-            .token(r"let", |_| Some(Token::Keyword(KeywordToken::Let)))
+            .token(r"store", |_| Some(Token::Keyword(KeywordToken::Store)))
             .token(r"do", |_| Some(Token::Keyword(KeywordToken::Do)))
             .token(r"match", |_| Some(Token::Keyword(KeywordToken::Match)))
             .token(r"fire", |_| Some(Token::Keyword(KeywordToken::Fire)))
