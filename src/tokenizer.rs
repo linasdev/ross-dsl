@@ -11,6 +11,7 @@ pub enum Token {
 #[derive(Debug, Clone)]
 pub enum KeywordToken {
     Store,
+    Let,
     Do,
     Match,
     Fire,
@@ -62,6 +63,7 @@ impl Tokenizer {
                 Some(Token::Text(String::from(token)))
             })
             .token(r"store", |_| Some(Token::Keyword(KeywordToken::Store)))
+            .token(r"let", |_| Some(Token::Keyword(KeywordToken::Let)))
             .token(r"do", |_| Some(Token::Keyword(KeywordToken::Do)))
             .token(r"match", |_| Some(Token::Keyword(KeywordToken::Match)))
             .token(r"fire", |_| Some(Token::Keyword(KeywordToken::Fire)))

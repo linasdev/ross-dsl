@@ -99,6 +99,15 @@ impl Parser {
                         return Err(ParserError::DuplicateVariable);
                     }
                 }
+                Token::Keyword(KeywordToken::Let) => {
+                    let mut variable_name = String::new();
+                    let variable = Self::parse_let_statement(&mut token_iterator, &mut variable_name)?;
+
+                    if let Some(_) = variable_map.insert(variable_name, variable)
+                    {
+                        return Err(ParserError::DuplicateVariable);
+                    }
+                }
                 Token::Keyword(KeywordToken::Do) => {
                     let event_processor =
                         Self::parse_do_statement(&mut token_iterator, &variable_map)?;
@@ -143,6 +152,26 @@ impl Parser {
         };
 
         Ok(state)
+    }
+
+    fn parse_let_statement<'a>(
+        token_iterator: &mut Iter<Token>,
+        variable_name: &mut String,
+    ) -> Result<Variable, ParserError> {
+        *variable_name = match_text_token!(token_iterator);
+
+        match_symbol_token!(token_iterator, SymbolToken::EqualSign);
+
+        let variable = match token_iterator.next() {
+            Some(Token::Data(DataToken::Integer(value))) => Variable::Integer(*value),
+            Some(Token::Data(DataToken::Boolean(value))) => Variable::Boolean(*value),
+            Some(token) => return Err(ParserError::UnexpectedToken(token.clone())),
+            None => return Err(ParserError::UnexpectedEndOfFile),
+        };
+
+        match_symbol_token!(token_iterator, SymbolToken::Semicolon);
+
+        Ok(variable)
     }
 
     fn parse_do_statement(
