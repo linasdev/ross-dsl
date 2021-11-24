@@ -502,22 +502,6 @@ impl<'a> Parser {
     }
 
     fn prepare_variable_map(variable_map: &mut BTreeMap<String, Variable>) {
-        prepare_variable!(variable_map, NONE_EXTRACTOR_CODE);
-        prepare_variable!(variable_map, EVENT_CODE_EXTRACTOR_CODE);
-
-        prepare_variable!(variable_map, U8_INCREMENT_STATE_FILTER);
-        prepare_variable!(variable_map, U16_IS_EQUAL_FILTER_CODE);
-        prepare_variable!(variable_map, U32_IS_EQUAL_STATE_FILTER_CODE);
-        prepare_variable!(variable_map, U32_INCREMENT_STATE_FILTER_CODE);
-        prepare_variable!(variable_map, U32_SET_STATE_FILTER_CODE);
-        prepare_variable!(variable_map, FLIP_FLOP_FILTER_CODE);
-        prepare_variable!(variable_map, COUNT_FILTER_CODE);
-        prepare_variable!(variable_map, COUNT_STATE_FILTER_CODE);
-
-        prepare_variable!(variable_map, NONE_PRODUCER_CODE);
-        prepare_variable!(variable_map, BCM_CHANGE_BRIGHTNESS_PRODUCER_CODE);
-        prepare_variable!(variable_map, BCM_CHANGE_BRIGHTNESS_STATE_PRODUCER_CODE);
-
         prepare_variable!(variable_map, BOOTLOADER_HELLO_EVENT_CODE);
         prepare_variable!(variable_map, PROGRAMMER_HELLO_EVENT_CODE);
         prepare_variable!(variable_map, PROGRAMMER_START_FIRMWARE_UPGRADE_EVENT_CODE);
