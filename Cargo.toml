@@ -22,3 +22,7 @@ path = "examples/save_button_state.rs"
 [[example]]
 name = "send-event"
 path = "examples/send_event.rs"
+
+[[example]]
+name = "broadcast-event"
+path = "examples/broadcast_event.rs"
