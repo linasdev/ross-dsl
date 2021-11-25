@@ -14,3 +14,7 @@ regex = "1.5.4"
 parse_int = "0.5.0"
 ross-config = "1.18.0"
 ross-protocol = "1.20.0"
+
+[[example]]
+name = "save-button-state"
+path = "examples/save_button_state.rs"
