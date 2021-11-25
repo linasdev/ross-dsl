@@ -1,4 +1,5 @@
 use regex_lexer::{Lexer, LexerBuilder};
+use parse_int::parse;
 
 #[derive(Debug, Clone)]
 pub enum Token {
@@ -78,7 +79,10 @@ impl Tokenizer {
             .token(r"\}", |_| Some(Token::Symbol(SymbolToken::CloseBrace)))
             .token(r"=", |_| Some(Token::Symbol(SymbolToken::EqualSign)))
             .token(r"-?[0-9]+", |token| {
-                Some(Token::Data(DataToken::Integer(token.parse().unwrap())))
+                Some(Token::Data(DataToken::Integer(parse(token).unwrap())))
+            })
+            .token(r"0x[0-9a-f]+", |token| {
+                Some(Token::Data(DataToken::Integer(parse(token).unwrap())))
             })
             .token(r"(true|false)", |token| {
                 Some(Token::Data(DataToken::Boolean(token.parse().unwrap())))
