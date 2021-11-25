@@ -179,6 +179,7 @@ impl Parser {
             "u8" => StateValue::U8(state_value.try_into()?),
             "u16" => StateValue::U16(state_value.try_into()?),
             "u32" => StateValue::U32(state_value.try_into()?),
+            "bool" => StateValue::Bool(state_value.try_into()?),
             _ => return Err(ParserError::TypeError),
         };
 
@@ -492,6 +493,36 @@ impl Parser {
             }
 
             return Ok(Box::new(CountStateFilter::new(
+                arguments[0]
+                    .try_into()
+                    .map_err(|_| ParserError::DataError)?,
+                arguments[1]
+                    .try_into()
+                    .map_err(|_| ParserError::DataError)?,
+            )));
+        }
+
+        if filter_type == "BoolIsEqualStateFilter" {
+            if arguments.len() != 2 {
+                return Err(ParserError::WrongArgumentCount);
+            }
+
+            return Ok(Box::new(BoolIsEqualStateFilter::new(
+                arguments[0]
+                    .try_into()
+                    .map_err(|_| ParserError::DataError)?,
+                arguments[1]
+                    .try_into()
+                    .map_err(|_| ParserError::DataError)?,
+            )));
+        }
+
+        if filter_type == "BoolSetStateFilter" {
+            if arguments.len() != 2 {
+                return Err(ParserError::WrongArgumentCount);
+            }
+
+            return Ok(Box::new(BoolSetStateFilter::new(
                 arguments[0]
                     .try_into()
                     .map_err(|_| ParserError::DataError)?,
