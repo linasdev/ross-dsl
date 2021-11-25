@@ -13,6 +13,9 @@ pub enum Token {
 pub enum KeywordToken {
     Store,
     Let,
+    Send,
+    From,
+    To,
     Do,
     Match,
     Fire,
@@ -65,6 +68,9 @@ impl Tokenizer {
             })
             .token(r"store", |_| Some(Token::Keyword(KeywordToken::Store)))
             .token(r"let", |_| Some(Token::Keyword(KeywordToken::Let)))
+            .token(r"send", |_| Some(Token::Keyword(KeywordToken::Send)))
+            .token(r"from", |_| Some(Token::Keyword(KeywordToken::From)))
+            .token(r"to", |_| Some(Token::Keyword(KeywordToken::To)))
             .token(r"do", |_| Some(Token::Keyword(KeywordToken::Do)))
             .token(r"match", |_| Some(Token::Keyword(KeywordToken::Match)))
             .token(r"fire", |_| Some(Token::Keyword(KeywordToken::Fire)))

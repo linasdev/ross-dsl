@@ -10,7 +10,7 @@ use ross_config::filter::*;
 use ross_config::matcher::Matcher;
 use ross_config::producer::state::*;
 use ross_config::producer::*;
-use ross_config::Value;
+use ross_config::StateValue;
 use ross_protocol::event::event_code::*;
 
 use crate::tokenizer::{DataToken, KeywordToken, SymbolToken, Token, Tokenizer, TokenizerError};
@@ -21,6 +21,33 @@ macro_rules! prepare_variable {
             String::from(stringify!($variable_name)),
             Variable::Integer($variable_name.into()),
         );
+    };
+}
+
+macro_rules! match_variable_or_value {
+    ($token_iterator:expr, $variable_map:expr) => {
+        match $token_iterator.next() {
+            Some(Token::Data(DataToken::Integer(value))) => Variable::Integer(*value),
+            Some(Token::Text(value)) => {
+                if let Some(variable) = $variable_map.get(value) {
+                    *variable
+                } else {
+                    return Err(ParserError::UndefinedVariable(value.clone()));
+                }
+            }
+            Some(token) => return Err(ParserError::UnexpectedToken(token.clone())),
+            None => return Err(ParserError::UnexpectedEndOfFile),
+        };
+    };
+}
+
+macro_rules! match_keyword_token {
+    ($token_iterator:expr, $keyword_token:path) => {
+        match $token_iterator.next() {
+            Some(Token::Keyword($keyword_token)) => {}
+            Some(token) => return Err(ParserError::UnexpectedToken(token.clone())),
+            None => return Err(ParserError::UnexpectedEndOfFile),
+        };
     };
 }
 
@@ -98,7 +125,7 @@ impl Parser {
                     {
                         return Err(ParserError::DuplicateVariable);
                     }
-                }
+                },
                 Token::Keyword(KeywordToken::Let) => {
                     let mut variable_name = String::new();
                     let variable = Self::parse_let_statement(&mut token_iterator, &mut variable_name)?;
@@ -107,7 +134,11 @@ impl Parser {
                     {
                         return Err(ParserError::DuplicateVariable);
                     }
-                }
+                },
+                Token::Keyword(KeywordToken::Send) => {
+                    let event_processor = Self::parse_send_statement(&mut token_iterator, &variable_map)?;
+                    event_processors.push(event_processor);
+                },
                 Token::Keyword(KeywordToken::Do) => {
                     let event_processor =
                         Self::parse_do_statement(&mut token_iterator, &variable_map)?;
@@ -123,10 +154,10 @@ impl Parser {
         })
     }
 
-    fn parse_store_statement<'a>(
+    fn parse_store_statement(
         token_iterator: &mut Iter<Token>,
         state_name: &mut String,
-    ) -> Result<Value<'a>, ParserError> {
+    ) -> Result<StateValue, ParserError> {
         *state_name = match_text_token!(token_iterator);
 
         match_symbol_token!(token_iterator, SymbolToken::Colon);
@@ -145,9 +176,9 @@ impl Parser {
         match_symbol_token!(token_iterator, SymbolToken::Semicolon);
 
         let state = match state_type.as_str() {
-            "u8" => Value::U8(state_value.try_into()?),
-            "u16" => Value::U16(state_value.try_into()?),
-            "u32" => Value::U32(state_value.try_into()?),
+            "u8" => StateValue::U8(state_value.try_into()?),
+            "u16" => StateValue::U16(state_value.try_into()?),
+            "u32" => StateValue::U32(state_value.try_into()?),
             _ => return Err(ParserError::TypeError),
         };
 
@@ -172,6 +203,42 @@ impl Parser {
         match_symbol_token!(token_iterator, SymbolToken::Semicolon);
 
         Ok(variable)
+    }
+
+    fn parse_send_statement(
+        token_iterator: &mut Iter<Token>,
+        variable_map: &BTreeMap<String, Variable>,
+    ) -> Result<EventProcessor, ParserError> {
+        let event_code: u16 = match_variable_or_value!(token_iterator, variable_map).try_into()?;
+
+        match_keyword_token!(token_iterator, KeywordToken::From);
+
+        let event_producer_address: u16 = match_variable_or_value!(token_iterator, variable_map).try_into()?;
+
+        match_keyword_token!(token_iterator, KeywordToken::To);
+
+        let receiver_address: u16 = match_variable_or_value!(token_iterator, variable_map).try_into()?;
+
+        match_symbol_token!(token_iterator, SymbolToken::Semicolon);
+
+        let mut matchers = vec![
+            Matcher {
+                extractor: Box::new(EventCodeExtractor::new()),
+                filter: Box::new(U16IsEqualFilter::new(event_code)),
+            },
+            Matcher {
+                extractor: Box::new(EventProducerAddressExtractor::new()),
+                filter: Box::new(U16IsEqualFilter::new(event_producer_address)),
+            },
+        ];
+        let mut extractor: Box<dyn Extractor> = Box::new(PacketExtractor::new());
+        let mut producer: Box<dyn Producer> = Box::new(PacketProducer::new(receiver_address));
+
+        Ok(EventProcessor {
+            matchers,
+            extractor,
+            producer,
+        })
     }
 
     fn parse_do_statement(

@@ -5,11 +5,12 @@ fn main() {
         store button: u32 = 0x00;
         store brightness: u8 = 0x00;
         
+        let event_producer_address = 0xffff;
         let receiver_address = 0x0003;
         let led_channel = 0;
 
         // sends all button_pressed events from device with address 4 to device with adress 3
-        // send BUTTON_PRESSED_EVENT_CODE from event_producer_address to receiver_address;
+        send BUTTON_PRESSED_EVENT_CODE from event_producer_address to receiver_address;
 
         // maybe unneeded?!?
         // sends all button_pressed events from any device to device address 3
