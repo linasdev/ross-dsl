@@ -222,7 +222,7 @@ impl Parser {
 
         match_symbol_token!(token_iterator, SymbolToken::Semicolon);
 
-        let mut matchers = vec![
+        let matchers = vec![
             Matcher {
                 extractor: Box::new(EventCodeExtractor::new()),
                 filter: Box::new(U16IsEqualFilter::new(event_code)),
@@ -232,8 +232,8 @@ impl Parser {
                 filter: Box::new(U16IsEqualFilter::new(event_producer_address)),
             },
         ];
-        let mut extractor: Box<dyn Extractor> = Box::new(PacketExtractor::new());
-        let mut producer: Box<dyn Producer> = Box::new(PacketProducer::new(receiver_address));
+        let extractor: Box<dyn Extractor> = Box::new(PacketExtractor::new());
+        let producer: Box<dyn Producer> = Box::new(PacketProducer::new(receiver_address));
 
         Ok(EventProcessor {
             matchers,
