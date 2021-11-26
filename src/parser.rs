@@ -126,9 +126,9 @@ impl Parser {
                         return Err(ParserError::DuplicateVariable);
                     }
                 },
-                Token::Keyword(KeywordToken::Let) => {
+                Token::Keyword(KeywordToken::Const) => {
                     let mut variable_name = String::new();
-                    let variable = Self::parse_let_statement(&mut token_iterator, &mut variable_name)?;
+                    let variable = Self::parse_const_statement(&mut token_iterator, &mut variable_name)?;
 
                     if let Some(_) = variable_map.insert(variable_name, variable)
                     {
@@ -186,7 +186,7 @@ impl Parser {
         Ok(state)
     }
 
-    fn parse_let_statement<'a>(
+    fn parse_const_statement<'a>(
         token_iterator: &mut Iter<Token>,
         variable_name: &mut String,
     ) -> Result<Variable, ParserError> {

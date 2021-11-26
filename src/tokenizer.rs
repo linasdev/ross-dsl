@@ -12,7 +12,7 @@ pub enum Token {
 #[derive(Debug, Clone)]
 pub enum KeywordToken {
     Store,
-    Let,
+    Const,
     Send,
     From,
     To,
@@ -69,7 +69,7 @@ impl Tokenizer {
                 Some(Token::Text(String::from(token)))
             })
             .token(r"store", |_| Some(Token::Keyword(KeywordToken::Store)))
-            .token(r"let", |_| Some(Token::Keyword(KeywordToken::Let)))
+            .token(r"const", |_| Some(Token::Keyword(KeywordToken::Const)))
             .token(r"send", |_| Some(Token::Keyword(KeywordToken::Send)))
             .token(r"from", |_| Some(Token::Keyword(KeywordToken::From)))
             .token(r"to", |_| Some(Token::Keyword(KeywordToken::To)))
