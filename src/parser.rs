@@ -359,7 +359,7 @@ impl Parser {
 
     fn parse_match_tick_statement(
         token_iterator: &mut Iter<Token>,
-        variable_map: &BTreeMap<String, Variable>,
+        _variable_map: &BTreeMap<String, Variable>,
     ) -> Result<Matcher, ParserError> {
         match_symbol_token!(token_iterator, SymbolToken::Semicolon);
 
