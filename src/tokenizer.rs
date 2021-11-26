@@ -20,6 +20,7 @@ pub enum KeywordToken {
     Match,
     Event,
     Producer,
+    Tick,
     Fire,
 }
 
@@ -77,6 +78,7 @@ impl Tokenizer {
             .token(r"match", |_| Some(Token::Keyword(KeywordToken::Match)))
             .token(r"event", |_| Some(Token::Keyword(KeywordToken::Event)))
             .token(r"producer", |_| Some(Token::Keyword(KeywordToken::Producer)))
+            .token(r"tick", |_| Some(Token::Keyword(KeywordToken::Tick)))
             .token(r"fire", |_| Some(Token::Keyword(KeywordToken::Fire)))
             .token(r";", |_| Some(Token::Symbol(SymbolToken::Semicolon)))
             .token(r":", |_| Some(Token::Symbol(SymbolToken::Colon)))

@@ -26,3 +26,7 @@ path = "examples/send_event.rs"
 [[example]]
 name = "broadcast-event"
 path = "examples/broadcast_event.rs"
+
+[[example]]
+name = "increment-state-on-tick"
+path = "examples/increment_state_on_tick.rs"

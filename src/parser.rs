@@ -290,9 +290,12 @@ impl Parser {
                 match_keyword_token!(token_iterator, KeywordToken::Producer);
                 return Self::parse_match_producer_statement(token_iterator, variable_map)
             },
+            Some(Token::Keyword(KeywordToken::Tick)) => {
+                match_keyword_token!(token_iterator, KeywordToken::Tick);
+                return Self::parse_match_tick_statement(token_iterator, variable_map)
+            },
             _ => (),
         }
-
 
         match_symbol_token!(token_iterator, SymbolToken::OpenBrace);
 
@@ -350,6 +353,18 @@ impl Parser {
 
         let extractor = Box::new(EventProducerAddressExtractor::new());
         let filter = Box::new(U16IsEqualFilter::new(event_producer_address.try_into()?));
+
+        Ok(Matcher { extractor, filter })
+    }
+
+    fn parse_match_tick_statement(
+        token_iterator: &mut Iter<Token>,
+        variable_map: &BTreeMap<String, Variable>,
+    ) -> Result<Matcher, ParserError> {
+        match_symbol_token!(token_iterator, SymbolToken::Semicolon);
+
+        let extractor = Box::new(EventCodeExtractor::new());
+        let filter = Box::new(U16IsEqualFilter::new(INTERNAL_SYSTEM_TICK_EVENT_CODE));
 
         Ok(Matcher { extractor, filter })
     }
