@@ -2,7 +2,7 @@ use ross_dsl::Parser;
 
 fn main() {
     let text = "
-        store button: bool = false;
+        let button: bool = false;
 
         const device_address = 0x0002;
         
