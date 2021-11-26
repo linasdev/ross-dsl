@@ -8,6 +8,7 @@ use ross_config::extractor::*;
 use ross_config::filter::state::*;
 use ross_config::filter::*;
 use ross_config::matcher::Matcher;
+use ross_config::creator::Creator;
 use ross_config::producer::state::*;
 use ross_config::producer::*;
 use ross_config::StateValue;
@@ -232,13 +233,17 @@ impl Parser {
                 filter: Box::new(U16IsEqualFilter::new(event_producer_address)),
             },
         ];
-        let extractor: Box<dyn Extractor> = Box::new(PacketExtractor::new());
-        let producer: Box<dyn Producer> = Box::new(PacketProducer::new(receiver_address));
+
+        let creators = vec![
+            Creator {
+                extractor: Box::new(PacketExtractor::new()),
+                producer: Box::new(PacketProducer::new(receiver_address)),
+            }
+        ];
 
         Ok(EventProcessor {
             matchers,
-            extractor,
-            producer,
+            creators,
         })
     }
 
@@ -249,8 +254,7 @@ impl Parser {
         match_symbol_token!(token_iterator, SymbolToken::OpenBrace);
 
         let mut matchers = vec![];
-        let mut extractor: Box<dyn Extractor> = Box::new(NoneExtractor::new());
-        let mut producer: Box<dyn Producer> = Box::new(NoneProducer::new());
+        let mut creators = vec![];
 
         while let Some(token) = token_iterator.next() {
             match token {
@@ -259,9 +263,8 @@ impl Parser {
                     matchers.push(matcher);
                 }
                 Token::Keyword(KeywordToken::Fire) => {
-                    let result = Self::parse_fire_statement(token_iterator, variable_map)?;
-                    extractor = result.0;
-                    producer = result.1;
+                    let creator = Self::parse_fire_statement(token_iterator, variable_map)?;
+                    creators.push(creator);
                 }
                 Token::Symbol(SymbolToken::CloseBrace) => break,
                 _ => return Err(ParserError::UnexpectedToken(token.clone())),
@@ -270,8 +273,7 @@ impl Parser {
 
         Ok(EventProcessor {
             matchers,
-            extractor,
-            producer,
+            creators,
         })
     }
 
@@ -372,7 +374,7 @@ impl Parser {
     fn parse_fire_statement(
         token_iterator: &mut Iter<Token>,
         variable_map: &BTreeMap<String, Variable>,
-    ) -> Result<(Box<dyn Extractor>, Box<dyn Producer>), ParserError> {
+    ) -> Result<Creator, ParserError> {
         match_symbol_token!(token_iterator, SymbolToken::OpenBrace);
 
         let mut sub_token_iterator = token_iterator.clone();
@@ -402,7 +404,7 @@ impl Parser {
 
         let producer = Self::parse_producer(&mut sub_token_iterator, variable_map)?;
 
-        Ok((extractor, producer))
+        Ok(Creator {extractor, producer})
     }
 
     fn parse_extractor(
