@@ -279,6 +279,21 @@ impl Parser {
         token_iterator: &mut Iter<Token>,
         variable_map: &BTreeMap<String, Variable>,
     ) -> Result<Matcher, ParserError> {
+        let mut sub_token_iterator = token_iterator.clone();
+
+        match sub_token_iterator.next() {
+            Some(Token::Keyword(KeywordToken::Event)) => {
+                match_keyword_token!(token_iterator, KeywordToken::Event);
+                return Self::parse_match_event_statement(token_iterator, variable_map)
+            },
+            Some(Token::Keyword(KeywordToken::Producer)) => {
+                match_keyword_token!(token_iterator, KeywordToken::Producer);
+                return Self::parse_match_producer_statement(token_iterator, variable_map)
+            },
+            _ => (),
+        }
+
+
         match_symbol_token!(token_iterator, SymbolToken::OpenBrace);
 
         let mut sub_token_iterator = token_iterator.clone();
@@ -307,6 +322,34 @@ impl Parser {
         };
 
         let filter = Self::parse_filter(&mut sub_token_iterator, variable_map)?;
+
+        Ok(Matcher { extractor, filter })
+    }
+
+    fn parse_match_event_statement(
+        token_iterator: &mut Iter<Token>,
+        variable_map: &BTreeMap<String, Variable>,
+    ) -> Result<Matcher, ParserError> {
+        let event_code = match_variable_or_value!(token_iterator, variable_map);
+
+        match_symbol_token!(token_iterator, SymbolToken::Semicolon);
+
+        let extractor = Box::new(EventCodeExtractor::new());
+        let filter = Box::new(U16IsEqualFilter::new(event_code.try_into()?));
+
+        Ok(Matcher { extractor, filter })
+    }
+
+    fn parse_match_producer_statement(
+        token_iterator: &mut Iter<Token>,
+        variable_map: &BTreeMap<String, Variable>,
+    ) -> Result<Matcher, ParserError> {
+        let event_producer_address = match_variable_or_value!(token_iterator, variable_map);
+
+        match_symbol_token!(token_iterator, SymbolToken::Semicolon);
+
+        let extractor = Box::new(EventProducerAddressExtractor::new());
+        let filter = Box::new(U16IsEqualFilter::new(event_producer_address.try_into()?));
 
         Ok(Matcher { extractor, filter })
     }
