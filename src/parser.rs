@@ -3,12 +3,12 @@ use std::convert::TryInto;
 use std::slice::Iter;
 
 use ross_config::config::Config;
+use ross_config::creator::Creator;
 use ross_config::event_processor::EventProcessor;
 use ross_config::extractor::*;
 use ross_config::filter::state::*;
 use ross_config::filter::*;
 use ross_config::matcher::Matcher;
-use ross_config::creator::Creator;
 use ross_config::producer::state::*;
 use ross_config::producer::*;
 use ross_config::StateValue;
@@ -126,20 +126,21 @@ impl Parser {
                     {
                         return Err(ParserError::DuplicateVariable);
                     }
-                },
+                }
                 Token::Keyword(KeywordToken::Const) => {
                     let mut variable_name = String::new();
-                    let variable = Self::parse_const_statement(&mut token_iterator, &mut variable_name)?;
+                    let variable =
+                        Self::parse_const_statement(&mut token_iterator, &mut variable_name)?;
 
-                    if let Some(_) = variable_map.insert(variable_name, variable)
-                    {
+                    if let Some(_) = variable_map.insert(variable_name, variable) {
                         return Err(ParserError::DuplicateVariable);
                     }
-                },
+                }
                 Token::Keyword(KeywordToken::Send) => {
-                    let event_processor = Self::parse_send_statement(&mut token_iterator, &variable_map)?;
+                    let event_processor =
+                        Self::parse_send_statement(&mut token_iterator, &variable_map)?;
                     event_processors.push(event_processor);
-                },
+                }
                 Token::Keyword(KeywordToken::Do) => {
                     let event_processor =
                         Self::parse_do_statement(&mut token_iterator, &variable_map)?;
@@ -215,11 +216,13 @@ impl Parser {
 
         match_keyword_token!(token_iterator, KeywordToken::From);
 
-        let event_producer_address: u16 = match_variable_or_value!(token_iterator, variable_map).try_into()?;
+        let event_producer_address: u16 =
+            match_variable_or_value!(token_iterator, variable_map).try_into()?;
 
         match_keyword_token!(token_iterator, KeywordToken::To);
 
-        let receiver_address: u16 = match_variable_or_value!(token_iterator, variable_map).try_into()?;
+        let receiver_address: u16 =
+            match_variable_or_value!(token_iterator, variable_map).try_into()?;
 
         match_symbol_token!(token_iterator, SymbolToken::Semicolon);
 
@@ -234,17 +237,12 @@ impl Parser {
             },
         ];
 
-        let creators = vec![
-            Creator {
-                extractor: Box::new(PacketExtractor::new()),
-                producer: Box::new(PacketProducer::new(receiver_address)),
-            }
-        ];
+        let creators = vec![Creator {
+            extractor: Box::new(PacketExtractor::new()),
+            producer: Box::new(PacketProducer::new(receiver_address)),
+        }];
 
-        Ok(EventProcessor {
-            matchers,
-            creators,
-        })
+        Ok(EventProcessor { matchers, creators })
     }
 
     fn parse_do_statement(
@@ -271,10 +269,7 @@ impl Parser {
             }
         }
 
-        Ok(EventProcessor {
-            matchers,
-            creators,
-        })
+        Ok(EventProcessor { matchers, creators })
     }
 
     fn parse_match_statement(
@@ -286,16 +281,16 @@ impl Parser {
         match sub_token_iterator.next() {
             Some(Token::Keyword(KeywordToken::Event)) => {
                 match_keyword_token!(token_iterator, KeywordToken::Event);
-                return Self::parse_match_event_statement(token_iterator, variable_map)
-            },
+                return Self::parse_match_event_statement(token_iterator, variable_map);
+            }
             Some(Token::Keyword(KeywordToken::Producer)) => {
                 match_keyword_token!(token_iterator, KeywordToken::Producer);
-                return Self::parse_match_producer_statement(token_iterator, variable_map)
-            },
+                return Self::parse_match_producer_statement(token_iterator, variable_map);
+            }
             Some(Token::Keyword(KeywordToken::Tick)) => {
                 match_keyword_token!(token_iterator, KeywordToken::Tick);
-                return Self::parse_match_tick_statement(token_iterator, variable_map)
-            },
+                return Self::parse_match_tick_statement(token_iterator, variable_map);
+            }
             _ => (),
         }
 
@@ -404,7 +399,10 @@ impl Parser {
 
         let producer = Self::parse_producer(&mut sub_token_iterator, variable_map)?;
 
-        Ok(Creator {extractor, producer})
+        Ok(Creator {
+            extractor,
+            producer,
+        })
     }
 
     fn parse_extractor(
