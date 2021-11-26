@@ -4,21 +4,17 @@ fn main() {
     let text = "
         store button: bool = false;
 
-        do {
-            match {
-                EventCodeExtractor();
-                U16IsEqualFilter(BUTTON_PRESSED_EVENT_CODE);
-            }
+        const device_address = 0x0002;
         
+        do {
+            match event BUTTON_PRESSED_EVENT_CODE;
+            match producer device_address;
             match { BoolSetStateFilter(button, true); }
         }
         
         do {
-            match {
-                EventCodeExtractor();
-                U16IsEqualFilter(BUTTON_RELEASED_EVENT_CODE);
-            }
-        
+            match event BUTTON_RELEASED_EVENT_CODE;
+            match producer device_address;
             match { BoolSetStateFilter(button, false); }
         }
     ";
