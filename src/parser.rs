@@ -28,9 +28,7 @@ macro_rules! match_variable_or_value {
     ($token_iterator:expr, $variable_map:expr) => {
         match $token_iterator.next() {
             Some(Token::Data(token)) => {
-                if let Some(Token::Symbol(SymbolToken::Tilde)) = $token_iterator.clone().next() {
-                    $token_iterator.next();
-
+                if let Some(Token::Symbol(SymbolToken::Tilde)) = $token_iterator.next() {
                     let variable_type = match $token_iterator.next() {
                         Some(Token::Text(value)) => value,
                         Some(token) => return Err(ParserError::UnexpectedToken(token.clone())),
@@ -51,8 +49,8 @@ macro_rules! match_variable_or_value {
                     }
                 } else {
                     match token {
-                        DataToken::Integer(value) => Variable::U32(*value as u32),
                         DataToken::Boolean(value) => Variable::Bool(*value),
+                        _ => return Err(ParserError::UntypedLiteral),
                     }
                 }
             }
@@ -116,6 +114,7 @@ pub enum ParserError {
     UnknownProducer(String),
     TooManyItemsInStatement,
     TooFewItemsInStatement,
+    UntypedLiteral,
 }
 
 #[derive(Debug, Copy, Clone)]
