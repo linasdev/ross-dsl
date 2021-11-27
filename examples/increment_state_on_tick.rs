@@ -2,9 +2,9 @@ use ross_dsl::Parser;
 
 fn main() {
     let text = "
-        let time: u32 = 0;
+        let time = 0;
 
-        const device_address = 0x0002;
+        const device_address = 0x0002~u16;
 
         do {
             match tick;

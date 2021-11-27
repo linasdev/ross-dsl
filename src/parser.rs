@@ -17,10 +17,10 @@ use ross_protocol::event::event_code::*;
 use crate::tokenizer::{DataToken, KeywordToken, SymbolToken, Token, Tokenizer, TokenizerError};
 
 macro_rules! prepare_variable {
-    ($variable_map:expr, $variable_name:tt) => {
+    ($variable_map:expr, $variable_name:tt, $variable_type:path) => {
         $variable_map.insert(
             String::from(stringify!($variable_name)),
-            Variable::Integer($variable_name.into()),
+            $variable_type($variable_name.into()),
         );
     };
 }
@@ -28,7 +28,39 @@ macro_rules! prepare_variable {
 macro_rules! match_variable_or_value {
     ($token_iterator:expr, $variable_map:expr) => {
         match $token_iterator.next() {
-            Some(Token::Data(DataToken::Integer(value))) => Variable::Integer(*value),
+            Some(Token::Data(token)) => {
+                if let Some(Token::Symbol(SymbolToken::Tilde)) = $token_iterator.clone().next() {
+                    $token_iterator.next();
+
+                    let variable_type = match $token_iterator.next() {
+                        Some(Token::Text(value)) => value,
+                        Some(token) => return Err(ParserError::UnexpectedToken(token.clone())),
+                        None => return Err(ParserError::UnexpectedEndOfFile),
+                    };
+
+                    match token {
+                        DataToken::Integer(value) => {
+                            match variable_type.as_str() {
+                                "u8" => Variable::U8(*value as u8),
+                                "u16" => Variable::U16(*value as u16),
+                                "u32" => Variable::U32(*value as u32),
+                                _ => return Err(ParserError::TypeError),
+                            }
+                        },
+                        DataToken::Boolean(value) => {
+                            match variable_type.as_str() {
+                                "bool" => Variable::Bool(*value),
+                                _ => return Err(ParserError::TypeError),
+                            }
+                        },
+                    }
+                } else {
+                    match token {
+                        DataToken::Integer(value) => Variable::U32(*value as u32),
+                        DataToken::Boolean(value) => Variable::Bool(*value),
+                    }
+                }
+            },
             Some(Token::Text(value)) => {
                 if let Some(variable) = $variable_map.get(value) {
                     *variable
@@ -93,8 +125,10 @@ pub enum ParserError {
 
 #[derive(Debug, Copy, Clone)]
 enum Variable {
-    Integer(i64),
-    Boolean(bool),
+    U8(u8),
+    U16(u16),
+    U32(u32),
+    Bool(bool),
 }
 
 impl Parser {
@@ -112,7 +146,7 @@ impl Parser {
             match token {
                 Token::Keyword(KeywordToken::Let) => {
                     let mut state_name = String::new();
-                    let state = Self::parse_let_statement(&mut token_iterator, &mut state_name)?;
+                    let state = Self::parse_let_statement(&mut token_iterator, &mut state_name, &variable_map)?;
 
                     let mut state_index = 0;
 
@@ -122,7 +156,7 @@ impl Parser {
 
                     initial_state.insert(state_index, state);
                     if let Some(_) =
-                        variable_map.insert(state_name, Variable::Integer(state_index.into()))
+                        variable_map.insert(state_name, Variable::U32(state_index.into()))
                     {
                         return Err(ParserError::DuplicateVariable);
                     }
@@ -130,7 +164,7 @@ impl Parser {
                 Token::Keyword(KeywordToken::Const) => {
                     let mut variable_name = String::new();
                     let variable =
-                        Self::parse_const_statement(&mut token_iterator, &mut variable_name)?;
+                        Self::parse_const_statement(&mut token_iterator, &mut variable_name, &variable_map)?;
 
                     if let Some(_) = variable_map.insert(variable_name, variable) {
                         return Err(ParserError::DuplicateVariable);
@@ -159,49 +193,29 @@ impl Parser {
     fn parse_let_statement(
         token_iterator: &mut Iter<Token>,
         state_name: &mut String,
+        variable_map: &BTreeMap<String, Variable>
     ) -> Result<StateValue, ParserError> {
         *state_name = match_text_token!(token_iterator);
 
-        match_symbol_token!(token_iterator, SymbolToken::Colon);
-
-        let state_type = match_text_token!(token_iterator);
-
         match_symbol_token!(token_iterator, SymbolToken::EqualSign);
 
-        let state_value = match token_iterator.next() {
-            Some(Token::Data(DataToken::Integer(value))) => Variable::Integer(*value),
-            Some(Token::Data(DataToken::Boolean(value))) => Variable::Boolean(*value),
-            Some(token) => return Err(ParserError::UnexpectedToken(token.clone())),
-            None => return Err(ParserError::UnexpectedEndOfFile),
-        };
+        let state_value = match_variable_or_value!(token_iterator, variable_map);
 
         match_symbol_token!(token_iterator, SymbolToken::Semicolon);
 
-        let state = match state_type.as_str() {
-            "u8" => StateValue::U8(state_value.try_into()?),
-            "u16" => StateValue::U16(state_value.try_into()?),
-            "u32" => StateValue::U32(state_value.try_into()?),
-            "bool" => StateValue::Bool(state_value.try_into()?),
-            _ => return Err(ParserError::TypeError),
-        };
-
-        Ok(state)
+        Ok(state_value.into())
     }
 
     fn parse_const_statement<'a>(
         token_iterator: &mut Iter<Token>,
         variable_name: &mut String,
+        variable_map: &BTreeMap<String, Variable>,
     ) -> Result<Variable, ParserError> {
         *variable_name = match_text_token!(token_iterator);
 
         match_symbol_token!(token_iterator, SymbolToken::EqualSign);
 
-        let variable = match token_iterator.next() {
-            Some(Token::Data(DataToken::Integer(value))) => Variable::Integer(*value),
-            Some(Token::Data(DataToken::Boolean(value))) => Variable::Boolean(*value),
-            Some(token) => return Err(ParserError::UnexpectedToken(token.clone())),
-            None => return Err(ParserError::UnexpectedEndOfFile),
-        };
+        let variable = match_variable_or_value!(token_iterator, variable_map);
 
         match_symbol_token!(token_iterator, SymbolToken::Semicolon);
 
@@ -671,33 +685,18 @@ impl Parser {
         let mut arguments = vec![];
         let mut comma_next = false;
 
-        while let Some(token) = token_iterator.next() {
+        loop {
             if comma_next {
-                match token {
-                    Token::Symbol(SymbolToken::Comma) => {}
-                    Token::Symbol(SymbolToken::CloseParenthesis) => break,
-                    _ => return Err(ParserError::UnexpectedToken(token.clone())),
+                match token_iterator.next() {
+                    Some(Token::Symbol(SymbolToken::Comma)) => {}
+                    Some(Token::Symbol(SymbolToken::CloseParenthesis)) => break,
+                    Some(token) => return Err(ParserError::UnexpectedToken(token.clone())),
+                    None => return Err(ParserError::UnexpectedEndOfFile),
                 }
 
                 comma_next = false;
             } else {
-                match token {
-                    Token::Data(DataToken::Integer(value)) => {
-                        arguments.push(Variable::Integer(*value));
-                    }
-                    Token::Data(DataToken::Boolean(value)) => {
-                        arguments.push(Variable::Boolean(*value));
-                    }
-                    Token::Text(value) => {
-                        if let Some(variable) = variable_map.get(value) {
-                            arguments.push(*variable);
-                        } else {
-                            return Err(ParserError::UndefinedVariable(value.clone()));
-                        }
-                    }
-                    Token::Symbol(SymbolToken::CloseParenthesis) => break,
-                    _ => return Err(ParserError::UnexpectedToken(token.clone())),
-                }
+                arguments.push(match_variable_or_value!(token_iterator, variable_map));
 
                 comma_next = true;
             }
@@ -707,18 +706,18 @@ impl Parser {
     }
 
     fn prepare_variable_map(variable_map: &mut BTreeMap<String, Variable>) {
-        prepare_variable!(variable_map, BOOTLOADER_HELLO_EVENT_CODE);
-        prepare_variable!(variable_map, PROGRAMMER_HELLO_EVENT_CODE);
-        prepare_variable!(variable_map, PROGRAMMER_START_FIRMWARE_UPGRADE_EVENT_CODE);
-        prepare_variable!(variable_map, ACK_EVENT_CODE);
-        prepare_variable!(variable_map, DATA_EVENT_CODE);
-        prepare_variable!(variable_map, CONFIGURATOR_HELLO_EVENT_CODE);
-        prepare_variable!(variable_map, BCM_CHANGE_BRIGHTNESS_EVENT_CODE);
-        prepare_variable!(variable_map, BUTTON_PRESSED_EVENT_CODE);
-        prepare_variable!(variable_map, BUTTON_RELEASED_EVENT_CODE);
-        prepare_variable!(variable_map, INTERNAL_SYSTEM_TICK_EVENT_CODE);
-        prepare_variable!(variable_map, PROGRAMMER_START_CONFIG_UPGRADE_EVENT_CODE);
-        prepare_variable!(variable_map, PROGRAMMER_SET_DEVICE_ADDRESS_EVENT_CODE);
+        prepare_variable!(variable_map, BOOTLOADER_HELLO_EVENT_CODE, Variable::U16);
+        prepare_variable!(variable_map, PROGRAMMER_HELLO_EVENT_CODE, Variable::U16);
+        prepare_variable!(variable_map, PROGRAMMER_START_FIRMWARE_UPGRADE_EVENT_CODE, Variable::U16);
+        prepare_variable!(variable_map, ACK_EVENT_CODE, Variable::U16);
+        prepare_variable!(variable_map, DATA_EVENT_CODE, Variable::U16);
+        prepare_variable!(variable_map, CONFIGURATOR_HELLO_EVENT_CODE, Variable::U16);
+        prepare_variable!(variable_map, BCM_CHANGE_BRIGHTNESS_EVENT_CODE, Variable::U16);
+        prepare_variable!(variable_map, BUTTON_PRESSED_EVENT_CODE, Variable::U16);
+        prepare_variable!(variable_map, BUTTON_RELEASED_EVENT_CODE, Variable::U16);
+        prepare_variable!(variable_map, INTERNAL_SYSTEM_TICK_EVENT_CODE, Variable::U16);
+        prepare_variable!(variable_map, PROGRAMMER_START_CONFIG_UPGRADE_EVENT_CODE, Variable::U16);
+        prepare_variable!(variable_map, PROGRAMMER_SET_DEVICE_ADDRESS_EVENT_CODE, Variable::U16);
     }
 }
 
@@ -733,7 +732,7 @@ impl TryInto<u32> for Variable {
 
     fn try_into(self) -> Result<u32, Self::Error> {
         match self {
-            Variable::Integer(value) => Ok(value.try_into().map_err(|_| ParserError::DataError)?),
+            Variable::U32(value) => Ok(value),
             _ => Err(ParserError::DataError),
         }
     }
@@ -744,7 +743,7 @@ impl TryInto<u16> for Variable {
 
     fn try_into(self) -> Result<u16, Self::Error> {
         match self {
-            Variable::Integer(value) => Ok(value.try_into().map_err(|_| ParserError::DataError)?),
+            Variable::U16(value) => Ok(value),
             _ => Err(ParserError::DataError),
         }
     }
@@ -755,7 +754,7 @@ impl TryInto<u8> for Variable {
 
     fn try_into(self) -> Result<u8, Self::Error> {
         match self {
-            Variable::Integer(value) => Ok(value.try_into().map_err(|_| ParserError::DataError)?),
+            Variable::U8(value) => Ok(value),
             _ => Err(ParserError::DataError),
         }
     }
@@ -766,8 +765,19 @@ impl TryInto<bool> for Variable {
 
     fn try_into(self) -> Result<bool, Self::Error> {
         match self {
-            Variable::Boolean(value) => Ok(value),
+            Variable::Bool(value) => Ok(value),
             _ => Err(ParserError::DataError),
+        }
+    }
+}
+
+impl Into<StateValue> for Variable {
+    fn into(self) -> StateValue {
+        match self {
+            Variable::U8(value) => StateValue::U8(value),
+            Variable::U16(value) => StateValue::U16(value),
+            Variable::U32(value) => StateValue::U32(value),
+            Variable::Bool(value) => StateValue::Bool(value),
         }
     }
 }

@@ -33,7 +33,7 @@ pub enum DataToken {
 #[derive(Debug, Clone)]
 pub enum SymbolToken {
     Semicolon,
-    Colon,
+    Tilde,
     Comma,
     OpenParenthesis,
     CloseParenthesis,
@@ -83,7 +83,7 @@ impl Tokenizer {
             .token(r"tick", |_| Some(Token::Keyword(KeywordToken::Tick)))
             .token(r"fire", |_| Some(Token::Keyword(KeywordToken::Fire)))
             .token(r";", |_| Some(Token::Symbol(SymbolToken::Semicolon)))
-            .token(r":", |_| Some(Token::Symbol(SymbolToken::Colon)))
+            .token(r"~", |_| Some(Token::Symbol(SymbolToken::Tilde)))
             .token(r",", |_| Some(Token::Symbol(SymbolToken::Comma)))
             .token(r"\(", |_| Some(Token::Symbol(SymbolToken::OpenParenthesis)))
             .token(r"\)", |_| {
@@ -92,7 +92,7 @@ impl Tokenizer {
             .token(r"\{", |_| Some(Token::Symbol(SymbolToken::OpenBrace)))
             .token(r"\}", |_| Some(Token::Symbol(SymbolToken::CloseBrace)))
             .token(r"=", |_| Some(Token::Symbol(SymbolToken::EqualSign)))
-            .token(r"-?[0-9]+", |token| {
+            .token(r"[0-9]+", |token| {
                 Some(Token::Data(DataToken::Integer(parse(token).unwrap())))
             })
             .token(r"0x[0-9a-f]+", |token| {

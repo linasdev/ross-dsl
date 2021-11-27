@@ -2,9 +2,9 @@ use ross_dsl::Parser;
 
 fn main() {
     let text = "
-        let button: bool = false;
+        let button = false;
 
-        const device_address = 0x0002;
+        const device_address = 0x0002~u16;
         
         do {
             match event BUTTON_PRESSED_EVENT_CODE;
