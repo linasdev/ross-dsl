@@ -40,19 +40,15 @@ macro_rules! match_variable_or_value {
                     };
 
                     match token {
-                        DataToken::Integer(value) => {
-                            match variable_type.as_str() {
-                                "u8" => Variable::U8(*value as u8),
-                                "u16" => Variable::U16(*value as u16),
-                                "u32" => Variable::U32(*value as u32),
-                                _ => return Err(ParserError::TypeError),
-                            }
+                        DataToken::Integer(value) => match variable_type.as_str() {
+                            "u8" => Variable::U8(*value as u8),
+                            "u16" => Variable::U16(*value as u16),
+                            "u32" => Variable::U32(*value as u32),
+                            _ => return Err(ParserError::TypeError),
                         },
-                        DataToken::Boolean(value) => {
-                            match variable_type.as_str() {
-                                "bool" => Variable::Bool(*value),
-                                _ => return Err(ParserError::TypeError),
-                            }
+                        DataToken::Boolean(value) => match variable_type.as_str() {
+                            "bool" => Variable::Bool(*value),
+                            _ => return Err(ParserError::TypeError),
                         },
                     }
                 } else {
@@ -61,7 +57,7 @@ macro_rules! match_variable_or_value {
                         DataToken::Boolean(value) => Variable::Bool(*value),
                     }
                 }
-            },
+            }
             Some(Token::Text(value)) => {
                 if let Some(variable) = $variable_map.get(value) {
                     *variable
@@ -147,7 +143,11 @@ impl Parser {
             match token {
                 Token::Keyword(KeywordToken::Let) => {
                     let mut state_name = String::new();
-                    let state = Self::parse_let_statement(&mut token_iterator, &mut state_name, &variable_map)?;
+                    let state = Self::parse_let_statement(
+                        &mut token_iterator,
+                        &mut state_name,
+                        &variable_map,
+                    )?;
 
                     let mut state_index = 0;
 
@@ -164,8 +164,11 @@ impl Parser {
                 }
                 Token::Keyword(KeywordToken::Const) => {
                     let mut variable_name = String::new();
-                    let variable =
-                        Self::parse_const_statement(&mut token_iterator, &mut variable_name, &variable_map)?;
+                    let variable = Self::parse_const_statement(
+                        &mut token_iterator,
+                        &mut variable_name,
+                        &variable_map,
+                    )?;
 
                     if let Some(_) = variable_map.insert(variable_name, variable) {
                         return Err(ParserError::DuplicateVariable);
@@ -194,7 +197,7 @@ impl Parser {
     fn parse_let_statement(
         token_iterator: &mut Iter<Token>,
         state_name: &mut String,
-        variable_map: &BTreeMap<String, Variable>
+        variable_map: &BTreeMap<String, Variable>,
     ) -> Result<StateValue, ParserError> {
         *state_name = match_text_token!(token_iterator);
 
@@ -743,16 +746,32 @@ impl Parser {
     fn prepare_variable_map(variable_map: &mut BTreeMap<String, Variable>) {
         prepare_variable!(variable_map, BOOTLOADER_HELLO_EVENT_CODE, Variable::U16);
         prepare_variable!(variable_map, PROGRAMMER_HELLO_EVENT_CODE, Variable::U16);
-        prepare_variable!(variable_map, PROGRAMMER_START_FIRMWARE_UPGRADE_EVENT_CODE, Variable::U16);
+        prepare_variable!(
+            variable_map,
+            PROGRAMMER_START_FIRMWARE_UPGRADE_EVENT_CODE,
+            Variable::U16
+        );
         prepare_variable!(variable_map, ACK_EVENT_CODE, Variable::U16);
         prepare_variable!(variable_map, DATA_EVENT_CODE, Variable::U16);
         prepare_variable!(variable_map, CONFIGURATOR_HELLO_EVENT_CODE, Variable::U16);
-        prepare_variable!(variable_map, BCM_CHANGE_BRIGHTNESS_EVENT_CODE, Variable::U16);
+        prepare_variable!(
+            variable_map,
+            BCM_CHANGE_BRIGHTNESS_EVENT_CODE,
+            Variable::U16
+        );
         prepare_variable!(variable_map, BUTTON_PRESSED_EVENT_CODE, Variable::U16);
         prepare_variable!(variable_map, BUTTON_RELEASED_EVENT_CODE, Variable::U16);
         prepare_variable!(variable_map, INTERNAL_SYSTEM_TICK_EVENT_CODE, Variable::U16);
-        prepare_variable!(variable_map, PROGRAMMER_START_CONFIG_UPGRADE_EVENT_CODE, Variable::U16);
-        prepare_variable!(variable_map, PROGRAMMER_SET_DEVICE_ADDRESS_EVENT_CODE, Variable::U16);
+        prepare_variable!(
+            variable_map,
+            PROGRAMMER_START_CONFIG_UPGRADE_EVENT_CODE,
+            Variable::U16
+        );
+        prepare_variable!(
+            variable_map,
+            PROGRAMMER_SET_DEVICE_ADDRESS_EVENT_CODE,
+            Variable::U16
+        );
     }
 }
 
