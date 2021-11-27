@@ -6,12 +6,10 @@ use ross_config::config::Config;
 use ross_config::creator::Creator;
 use ross_config::event_processor::EventProcessor;
 use ross_config::extractor::*;
-use ross_config::filter::state::*;
 use ross_config::filter::*;
 use ross_config::matcher::Matcher;
-use ross_config::producer::state::*;
 use ross_config::producer::*;
-use ross_config::StateValue;
+use ross_config::Value;
 use ross_protocol::event::event_code::*;
 use ross_protocol::event::message::MessageValue;
 
@@ -198,7 +196,7 @@ impl Parser {
         token_iterator: &mut Iter<Token>,
         state_name: &mut String,
         variable_map: &BTreeMap<String, Variable>,
-    ) -> Result<StateValue, ParserError> {
+    ) -> Result<Value, ParserError> {
         *state_name = match_text_token!(token_iterator);
 
         match_symbol_token!(token_iterator, SymbolToken::EqualSign);
@@ -230,34 +228,34 @@ impl Parser {
         token_iterator: &mut Iter<Token>,
         variable_map: &BTreeMap<String, Variable>,
     ) -> Result<EventProcessor, ParserError> {
-        let event_code: u16 = match_variable_or_value!(token_iterator, variable_map).try_into()?;
+        let event_code = match_variable_or_value!(token_iterator, variable_map);
 
         match_keyword_token!(token_iterator, KeywordToken::From);
 
-        let event_producer_address: u16 =
-            match_variable_or_value!(token_iterator, variable_map).try_into()?;
+        let event_producer_address =
+            match_variable_or_value!(token_iterator, variable_map);
 
         match_keyword_token!(token_iterator, KeywordToken::To);
 
-        let receiver_address: u16 =
-            match_variable_or_value!(token_iterator, variable_map).try_into()?;
+        let receiver_address =
+            match_variable_or_value!(token_iterator, variable_map);
 
         match_symbol_token!(token_iterator, SymbolToken::Semicolon);
 
         let matchers = vec![
             Matcher {
                 extractor: Box::new(EventCodeExtractor::new()),
-                filter: Box::new(U16IsEqualFilter::new(event_code)),
+                filter: Box::new(ValueEqualToConstFilter::new(event_code.into())),
             },
             Matcher {
                 extractor: Box::new(EventProducerAddressExtractor::new()),
-                filter: Box::new(U16IsEqualFilter::new(event_producer_address)),
+                filter: Box::new(ValueEqualToConstFilter::new(event_producer_address.into())),
             },
         ];
 
         let creators = vec![Creator {
             extractor: Box::new(PacketExtractor::new()),
-            producer: Box::new(PacketProducer::new(receiver_address)),
+            producer: Box::new(PacketProducer::new(receiver_address.try_into()?)),
         }];
 
         Ok(EventProcessor { matchers, creators })
@@ -353,7 +351,7 @@ impl Parser {
         match_symbol_token!(token_iterator, SymbolToken::Semicolon);
 
         let extractor = Box::new(EventCodeExtractor::new());
-        let filter = Box::new(U16IsEqualFilter::new(event_code.try_into()?));
+        let filter = Box::new(ValueEqualToConstFilter::new(event_code.into()));
 
         Ok(Matcher { extractor, filter })
     }
@@ -367,7 +365,7 @@ impl Parser {
         match_symbol_token!(token_iterator, SymbolToken::Semicolon);
 
         let extractor = Box::new(EventProducerAddressExtractor::new());
-        let filter = Box::new(U16IsEqualFilter::new(event_producer_address.try_into()?));
+        let filter = Box::new(ValueEqualToConstFilter::new(event_producer_address.into()));
 
         Ok(Matcher { extractor, filter })
     }
@@ -379,7 +377,7 @@ impl Parser {
         match_symbol_token!(token_iterator, SymbolToken::Semicolon);
 
         let extractor = Box::new(EventCodeExtractor::new());
-        let filter = Box::new(U16IsEqualFilter::new(INTERNAL_SYSTEM_TICK_EVENT_CODE));
+        let filter = Box::new(ValueEqualToConstFilter::new(Value::U16(INTERNAL_SYSTEM_TICK_EVENT_CODE)));
 
         Ok(Matcher { extractor, filter })
     }
@@ -457,6 +455,14 @@ impl Parser {
             return Ok(Box::new(PacketExtractor::new()));
         }
 
+        if extractor_type == "EventProducerAddressExtractor" {
+            if arguments.len() != 0 {
+                return Err(ParserError::WrongArgumentCount);
+            }
+
+            return Ok(Box::new(EventProducerAddressExtractor::new()));
+        }
+
         if extractor_type == "MessageCodeExtractor" {
             if arguments.len() != 0 {
                 return Err(ParserError::WrongArgumentCount);
@@ -494,36 +500,24 @@ impl Parser {
 
         match_symbol_token!(token_iterator, SymbolToken::Semicolon);
 
-        if filter_type == "U8IncrementStateFilter" {
+        if filter_type == "ValueEqualToConstFilter" {
             if arguments.len() != 1 {
                 return Err(ParserError::WrongArgumentCount);
             }
 
-            return Ok(Box::new(U8IncrementStateFilter::new(
+            return Ok(Box::new(ValueEqualToConstFilter::new(
                 arguments[0]
                     .try_into()
                     .map_err(|_| ParserError::DataError)?,
             )));
         }
 
-        if filter_type == "U16IsEqualFilter" {
-            if arguments.len() != 1 {
-                return Err(ParserError::WrongArgumentCount);
-            }
-
-            return Ok(Box::new(U16IsEqualFilter::new(
-                arguments[0]
-                    .try_into()
-                    .map_err(|_| ParserError::DataError)?,
-            )));
-        }
-
-        if filter_type == "U32IsEqualStateFilter" {
+        if filter_type == "StateEqualToConstFilter" {
             if arguments.len() != 2 {
                 return Err(ParserError::WrongArgumentCount);
             }
 
-            return Ok(Box::new(U32IsEqualStateFilter::new(
+            return Ok(Box::new(StateEqualToConstFilter::new(
                 arguments[0]
                     .try_into()
                     .map_err(|_| ParserError::DataError)?,
@@ -533,24 +527,24 @@ impl Parser {
             )));
         }
 
-        if filter_type == "U32IncrementStateFilter" {
+        if filter_type == "StateEqualToValueFilter" {
             if arguments.len() != 1 {
                 return Err(ParserError::WrongArgumentCount);
             }
 
-            return Ok(Box::new(U32IncrementStateFilter::new(
+            return Ok(Box::new(StateEqualToValueFilter::new(
                 arguments[0]
                     .try_into()
                     .map_err(|_| ParserError::DataError)?,
             )));
         }
 
-        if filter_type == "U32SetStateFilter" {
+        if filter_type == "StateIncrementByConstFilter" {
             if arguments.len() != 2 {
                 return Err(ParserError::WrongArgumentCount);
             }
 
-            return Ok(Box::new(U32SetStateFilter::new(
+            return Ok(Box::new(StateIncrementByConstFilter::new(
                 arguments[0]
                     .try_into()
                     .map_err(|_| ParserError::DataError)?,
@@ -560,24 +554,24 @@ impl Parser {
             )));
         }
 
-        if filter_type == "FlipFlopFilter" {
+        if filter_type == "StateIncrementByValueFilter" {
             if arguments.len() != 1 {
                 return Err(ParserError::WrongArgumentCount);
             }
 
-            return Ok(Box::new(FlipFlopFilter::new(
+            return Ok(Box::new(StateIncrementByValueFilter::new(
                 arguments[0]
                     .try_into()
                     .map_err(|_| ParserError::DataError)?,
             )));
         }
 
-        if filter_type == "CountFilter" {
+        if filter_type == "StateDecrementByConstFilter" {
             if arguments.len() != 2 {
                 return Err(ParserError::WrongArgumentCount);
             }
 
-            return Ok(Box::new(CountFilter::new(
+            return Ok(Box::new(StateDecrementByConstFilter::new(
                 arguments[0]
                     .try_into()
                     .map_err(|_| ParserError::DataError)?,
@@ -587,69 +581,24 @@ impl Parser {
             )));
         }
 
-        if filter_type == "CountStateFilter" {
-            if arguments.len() != 2 {
-                return Err(ParserError::WrongArgumentCount);
-            }
-
-            return Ok(Box::new(CountStateFilter::new(
-                arguments[0]
-                    .try_into()
-                    .map_err(|_| ParserError::DataError)?,
-                arguments[1]
-                    .try_into()
-                    .map_err(|_| ParserError::DataError)?,
-            )));
-        }
-
-        if filter_type == "BoolIsEqualStateFilter" {
-            if arguments.len() != 2 {
-                return Err(ParserError::WrongArgumentCount);
-            }
-
-            return Ok(Box::new(BoolIsEqualStateFilter::new(
-                arguments[0]
-                    .try_into()
-                    .map_err(|_| ParserError::DataError)?,
-                arguments[1]
-                    .try_into()
-                    .map_err(|_| ParserError::DataError)?,
-            )));
-        }
-
-        if filter_type == "BoolSetStateFilter" {
-            if arguments.len() != 2 {
-                return Err(ParserError::WrongArgumentCount);
-            }
-
-            return Ok(Box::new(BoolSetStateFilter::new(
-                arguments[0]
-                    .try_into()
-                    .map_err(|_| ParserError::DataError)?,
-                arguments[1]
-                    .try_into()
-                    .map_err(|_| ParserError::DataError)?,
-            )));
-        }
-
-        if filter_type == "U8IsEqualFilter" {
+        if filter_type == "StateDecrementByValueFilter" {
             if arguments.len() != 1 {
                 return Err(ParserError::WrongArgumentCount);
             }
 
-            return Ok(Box::new(U8IsEqualFilter::new(
+            return Ok(Box::new(StateDecrementByValueFilter::new(
                 arguments[0]
                     .try_into()
                     .map_err(|_| ParserError::DataError)?,
             )));
         }
 
-        if filter_type == "U8SetStateFilter" {
+        if filter_type == "SetStateToConstFilter" {
             if arguments.len() != 2 {
                 return Err(ParserError::WrongArgumentCount);
             }
 
-            return Ok(Box::new(U8SetStateFilter::new(
+            return Ok(Box::new(SetStateToConstFilter::new(
                 arguments[0]
                     .try_into()
                     .map_err(|_| ParserError::DataError)?,
@@ -659,24 +608,24 @@ impl Parser {
             )));
         }
 
-        if filter_type == "U8SetFromValueStateFilter" {
+        if filter_type == "SetStateToValueFilter" {
             if arguments.len() != 1 {
                 return Err(ParserError::WrongArgumentCount);
             }
 
-            return Ok(Box::new(U8SetFromValueStateFilter::new(
+            return Ok(Box::new(SetStateToValueFilter::new(
                 arguments[0]
                     .try_into()
                     .map_err(|_| ParserError::DataError)?,
             )));
         }
 
-        if filter_type == "BoolFlipStateFilter" {
+        if filter_type == "FlipStateFilter" {
             if arguments.len() != 1 {
                 return Err(ParserError::WrongArgumentCount);
             }
 
-            return Ok(Box::new(BoolFlipStateFilter::new(
+            return Ok(Box::new(FlipStateFilter::new(
                 arguments[0]
                     .try_into()
                     .map_err(|_| ParserError::DataError)?,
@@ -704,6 +653,36 @@ impl Parser {
             return Ok(Box::new(NoneProducer::new()));
         }
 
+        if producer_type == "PacketProducer" {
+            if arguments.len() != 1 {
+                return Err(ParserError::WrongArgumentCount);
+            }
+
+            return Ok(Box::new(PacketProducer::new(
+                arguments[0]
+                    .try_into()
+                    .map_err(|_| ParserError::DataError)?,
+            )));
+        }
+
+        if producer_type == "MessageProducer" {
+            if arguments.len() != 3 {
+                return Err(ParserError::WrongArgumentCount);
+            }
+
+            return Ok(Box::new(MessageProducer::new(
+                arguments[0]
+                    .try_into()
+                    .map_err(|_| ParserError::DataError)?,
+                arguments[1]
+                    .try_into()
+                    .map_err(|_| ParserError::DataError)?,
+                arguments[2]
+                    .try_into()
+                    .map_err(|_| ParserError::DataError)?,
+            )));
+        }
+
         if producer_type == "BcmChangeBrightnessProducer" {
             if arguments.len() != 3 {
                 return Err(ParserError::WrongArgumentCount);
@@ -728,36 +707,6 @@ impl Parser {
             }
 
             return Ok(Box::new(BcmChangeBrightnessStateProducer::new(
-                arguments[0]
-                    .try_into()
-                    .map_err(|_| ParserError::DataError)?,
-                arguments[1]
-                    .try_into()
-                    .map_err(|_| ParserError::DataError)?,
-                arguments[2]
-                    .try_into()
-                    .map_err(|_| ParserError::DataError)?,
-            )));
-        }
-
-        if producer_type == "PacketProducer" {
-            if arguments.len() != 1 {
-                return Err(ParserError::WrongArgumentCount);
-            }
-
-            return Ok(Box::new(PacketProducer::new(
-                arguments[0]
-                    .try_into()
-                    .map_err(|_| ParserError::DataError)?,
-            )));
-        }
-
-        if producer_type == "MessageProducer" {
-            if arguments.len() != 3 {
-                return Err(ParserError::WrongArgumentCount);
-            }
-
-            return Ok(Box::new(MessageProducer::new(
                 arguments[0]
                     .try_into()
                     .map_err(|_| ParserError::DataError)?,
@@ -905,13 +854,13 @@ impl TryInto<MessageValue> for Variable {
     }
 }
 
-impl Into<StateValue> for Variable {
-    fn into(self) -> StateValue {
+impl Into<Value> for Variable {
+    fn into(self) -> Value {
         match self {
-            Variable::U8(value) => StateValue::U8(value),
-            Variable::U16(value) => StateValue::U16(value),
-            Variable::U32(value) => StateValue::U32(value),
-            Variable::Bool(value) => StateValue::Bool(value),
+            Variable::U8(value) => Value::U8(value),
+            Variable::U16(value) => Value::U16(value),
+            Variable::U32(value) => Value::U32(value),
+            Variable::Bool(value) => Value::Bool(value),
         }
     }
 }
