@@ -644,6 +644,21 @@ impl Parser {
             )));
         }
 
+        if filter_type == "U8SetStateFilter" {
+            if arguments.len() != 2 {
+                return Err(ParserError::WrongArgumentCount);
+            }
+
+            return Ok(Box::new(U8SetStateFilter::new(
+                arguments[0]
+                    .try_into()
+                    .map_err(|_| ParserError::DataError)?,
+                arguments[1]
+                    .try_into()
+                    .map_err(|_| ParserError::DataError)?,
+            )));
+        }
+
         Err(ParserError::UnknownFilter(filter_type))
     }
 

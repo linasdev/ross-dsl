@@ -12,7 +12,7 @@ readme = "README.md"
 regex-lexer = "0.1.0"
 regex = "1.5.4"
 parse_int = "0.5.0"
-ross-config = "1.26.0"
+ross-config = "1.27.0"
 ross-protocol = "1.20.0"
 
 [[example]]
