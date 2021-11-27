@@ -473,6 +473,14 @@ impl Parser {
             return Ok(Box::new(MessageValueExtractor::new()));
         }
 
+        if extractor_type == "ButtonIndexExtractor" {
+            if arguments.len() != 0 {
+                return Err(ParserError::WrongArgumentCount);
+            }
+
+            return Ok(Box::new(ButtonIndexExtractor::new()));
+        }
+
         Err(ParserError::UnknownExtractor(extractor_type))
     }
 
