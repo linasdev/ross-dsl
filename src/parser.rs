@@ -538,12 +538,12 @@ impl Parser {
             )));
         }
 
-        if filter_type == "StateIncrementByConstFilter" {
+        if filter_type == "IncrementStateByConstFilter" {
             if arguments.len() != 2 {
                 return Err(ParserError::WrongArgumentCount);
             }
 
-            return Ok(Box::new(StateIncrementByConstFilter::new(
+            return Ok(Box::new(IncrementStateByConstFilter::new(
                 arguments[0]
                     .try_into()
                     .map_err(|_| ParserError::DataError)?,
@@ -553,24 +553,24 @@ impl Parser {
             )));
         }
 
-        if filter_type == "StateIncrementByValueFilter" {
+        if filter_type == "IncrementStateByValueFilter" {
             if arguments.len() != 1 {
                 return Err(ParserError::WrongArgumentCount);
             }
 
-            return Ok(Box::new(StateIncrementByValueFilter::new(
+            return Ok(Box::new(IncrementStateByValueFilter::new(
                 arguments[0]
                     .try_into()
                     .map_err(|_| ParserError::DataError)?,
             )));
         }
 
-        if filter_type == "StateDecrementByConstFilter" {
+        if filter_type == "DecrementStateByConstFilter" {
             if arguments.len() != 2 {
                 return Err(ParserError::WrongArgumentCount);
             }
 
-            return Ok(Box::new(StateDecrementByConstFilter::new(
+            return Ok(Box::new(DecrementStateByConstFilter::new(
                 arguments[0]
                     .try_into()
                     .map_err(|_| ParserError::DataError)?,
@@ -580,12 +580,12 @@ impl Parser {
             )));
         }
 
-        if filter_type == "StateDecrementByValueFilter" {
+        if filter_type == "DecrementStateByValueFilter" {
             if arguments.len() != 1 {
                 return Err(ParserError::WrongArgumentCount);
             }
 
-            return Ok(Box::new(StateDecrementByValueFilter::new(
+            return Ok(Box::new(DecrementStateByValueFilter::new(
                 arguments[0]
                     .try_into()
                     .map_err(|_| ParserError::DataError)?,
