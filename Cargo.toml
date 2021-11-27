@@ -34,3 +34,7 @@ path = "examples/increment_state_on_tick.rs"
 [[example]]
 name = "multiple-creators"
 path = "examples/multiple_creators.rs"
+
+[[example]]
+name = "send-if-match"
+path = "examples/send_if_match.rs"
