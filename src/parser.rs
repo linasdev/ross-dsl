@@ -239,9 +239,19 @@ impl Parser {
 
         let receiver_address = match_variable_or_value!(token_iterator, variable_map);
 
+        let mut additional_matcher = None;
+
+        if let Some(Token::Keyword(KeywordToken::If)) = token_iterator.clone().next() {
+            token_iterator.next();
+
+            match_keyword_token!(token_iterator, KeywordToken::Match);
+
+            additional_matcher = Some(Self::parse_match_statement(token_iterator, variable_map)?);
+        }
+
         match_symbol_token!(token_iterator, SymbolToken::Semicolon);
 
-        let matchers = vec![
+        let mut matchers = vec![
             Matcher {
                 extractor: Box::new(EventCodeExtractor::new()),
                 filter: Box::new(ValueEqualToConstFilter::new(event_code.into())),
@@ -251,6 +261,10 @@ impl Parser {
                 filter: Box::new(ValueEqualToConstFilter::new(event_producer_address.into())),
             },
         ];
+
+        if let Some(matcher) = additional_matcher {
+            matchers.push(matcher);
+        }
 
         let creators = vec![Creator {
             extractor: Box::new(PacketExtractor::new()),

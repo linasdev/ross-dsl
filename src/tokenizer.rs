@@ -16,6 +16,7 @@ pub enum KeywordToken {
     Send,
     From,
     To,
+    If,
     Do,
     Match,
     Event,
@@ -74,6 +75,7 @@ impl Tokenizer {
             .token(r"send", |_| Some(Token::Keyword(KeywordToken::Send)))
             .token(r"from", |_| Some(Token::Keyword(KeywordToken::From)))
             .token(r"to", |_| Some(Token::Keyword(KeywordToken::To)))
+            .token(r"if", |_| Some(Token::Keyword(KeywordToken::If)))
             .token(r"do", |_| Some(Token::Keyword(KeywordToken::Do)))
             .token(r"match", |_| Some(Token::Keyword(KeywordToken::Match)))
             .token(r"event", |_| Some(Token::Keyword(KeywordToken::Event)))
