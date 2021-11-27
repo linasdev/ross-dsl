@@ -9,13 +9,13 @@ fn main() {
         do {
             match event BUTTON_PRESSED_EVENT_CODE;
             match producer device_address;
-            match { BoolSetStateFilter(button, true); }
+            match { SetStateToConstFilter(button, true); }
         }
         
         do {
             match event BUTTON_RELEASED_EVENT_CODE;
             match producer device_address;
-            match { BoolSetStateFilter(button, false); }
+            match { SetStateToConstFilter(button, false); }
         }
     ";
 
