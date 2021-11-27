@@ -13,6 +13,7 @@ use ross_config::producer::state::*;
 use ross_config::producer::*;
 use ross_config::StateValue;
 use ross_protocol::event::event_code::*;
+use ross_protocol::event::message::MessageValue;
 
 use crate::tokenizer::{DataToken, KeywordToken, SymbolToken, Token, Tokenizer, TokenizerError};
 
@@ -453,6 +454,22 @@ impl Parser {
             return Ok(Box::new(PacketExtractor::new()));
         }
 
+        if extractor_type == "MessageCodeExtractor" {
+            if arguments.len() != 0 {
+                return Err(ParserError::WrongArgumentCount);
+            }
+
+            return Ok(Box::new(MessageCodeExtractor::new()));
+        }
+
+        if extractor_type == "MessageValueExtractor" {
+            if arguments.len() != 0 {
+                return Err(ParserError::WrongArgumentCount);
+            }
+
+            return Ok(Box::new(MessageValueExtractor::new()));
+        }
+
         Err(ParserError::UnknownExtractor(extractor_type))
     }
 
@@ -673,6 +690,24 @@ impl Parser {
             )));
         }
 
+        if producer_type == "MessageProducer" {
+            if arguments.len() != 3 {
+                return Err(ParserError::WrongArgumentCount);
+            }
+
+            return Ok(Box::new(MessageProducer::new(
+                arguments[0]
+                    .try_into()
+                    .map_err(|_| ParserError::DataError)?,
+                arguments[1]
+                    .try_into()
+                    .map_err(|_| ParserError::DataError)?,
+                arguments[2]
+                    .try_into()
+                    .map_err(|_| ParserError::DataError)?,
+            )));
+        }
+
         Err(ParserError::UnknownProducer(producer_type))
     }
 
@@ -766,6 +801,19 @@ impl TryInto<bool> for Variable {
     fn try_into(self) -> Result<bool, Self::Error> {
         match self {
             Variable::Bool(value) => Ok(value),
+            _ => Err(ParserError::DataError),
+        }
+    }
+}
+
+impl TryInto<MessageValue> for Variable {
+    type Error = ParserError;
+
+    fn try_into(self) -> Result<MessageValue, Self::Error> {
+        match self {
+            Variable::U8(value) => Ok(MessageValue::U8(value)),
+            Variable::U16(value) => Ok(MessageValue::U16(value)),
+            Variable::U32(value) => Ok(MessageValue::U32(value)),
             _ => Err(ParserError::DataError),
         }
     }
