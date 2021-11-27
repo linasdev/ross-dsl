@@ -742,6 +742,11 @@ impl Parser {
 
                 comma_next = false;
             } else {
+                if let Some(Token::Symbol(SymbolToken::CloseParenthesis)) = token_iterator.clone().next() {
+                    token_iterator.next();
+                    break;
+                }
+                
                 arguments.push(match_variable_or_value!(token_iterator, variable_map));
 
                 comma_next = true;
