@@ -30,7 +30,7 @@ macro_rules! match_variable_or_value {
             Some(Token::Data(token)) => {
                 if let Some(Token::Symbol(SymbolToken::Tilde)) = $token_iterator.clone().next() {
                     $token_iterator.next();
-                    
+
                     let variable_type = match $token_iterator.next() {
                         Some(Token::Text(value)) => value,
                         Some(token) => return Err(ParserError::UnexpectedToken(token.clone())),
@@ -233,13 +233,11 @@ impl Parser {
 
         match_keyword_token!(token_iterator, KeywordToken::From);
 
-        let event_producer_address =
-            match_variable_or_value!(token_iterator, variable_map);
+        let event_producer_address = match_variable_or_value!(token_iterator, variable_map);
 
         match_keyword_token!(token_iterator, KeywordToken::To);
 
-        let receiver_address =
-            match_variable_or_value!(token_iterator, variable_map);
+        let receiver_address = match_variable_or_value!(token_iterator, variable_map);
 
         match_symbol_token!(token_iterator, SymbolToken::Semicolon);
 
@@ -378,7 +376,9 @@ impl Parser {
         match_symbol_token!(token_iterator, SymbolToken::Semicolon);
 
         let extractor = Box::new(EventCodeExtractor::new());
-        let filter = Box::new(ValueEqualToConstFilter::new(Value::U16(INTERNAL_SYSTEM_TICK_EVENT_CODE)));
+        let filter = Box::new(ValueEqualToConstFilter::new(Value::U16(
+            INTERNAL_SYSTEM_TICK_EVENT_CODE,
+        )));
 
         Ok(Matcher { extractor, filter })
     }
