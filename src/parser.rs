@@ -632,6 +632,18 @@ impl Parser {
             )));
         }
 
+        if filter_type == "U8IsEqualFilter" {
+            if arguments.len() != 1 {
+                return Err(ParserError::WrongArgumentCount);
+            }
+
+            return Ok(Box::new(U8IsEqualFilter::new(
+                arguments[0]
+                    .try_into()
+                    .map_err(|_| ParserError::DataError)?,
+            )));
+        }
+
         Err(ParserError::UnknownFilter(filter_type))
     }
 
@@ -783,6 +795,11 @@ impl Parser {
         prepare_variable!(
             variable_map,
             PROGRAMMER_SET_DEVICE_ADDRESS_EVENT_CODE,
+            Variable::U16
+        );
+        prepare_variable!(
+            variable_map,
+            MESSAGE_EVENT_CODE,
             Variable::U16
         );
     }
