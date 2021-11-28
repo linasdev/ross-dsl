@@ -83,8 +83,6 @@ fn alphanumeric_or_dash1(input: &str) -> IResult<&str, &str, ParserError> {
 mod tests {
     use super::*;
 
-    use nom::error::ErrorKind;
-
     #[test]
     fn hex_u8_test() {
         assert_eq!(
@@ -127,7 +125,7 @@ mod tests {
     fn hex_u32_test() {
         assert_eq!(
             parse_literal("0xabababab~u32;input"),
-            Ok((";input", Literal::U32(0xabababab)))
+            Ok((";input", Literal::U32(0xabab_abab)))
         );
     }
 
