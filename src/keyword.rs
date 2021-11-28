@@ -56,6 +56,22 @@ macro_rules! implement_keyword_parser {
                     );
                 }
             }
+
+            mod empty {
+                use super::*;
+
+                #[test]
+                fn $parser_name() {
+                    assert_eq!(
+                        super::super::$parser_name(""),
+                        Err(Err::Failure(ParserError::ExpectedKeywordFound(
+                            "".to_string(),
+                            $keyword.to_string(),
+                            "".to_string()
+                        )))
+                    );
+                }
+            }
         }
     };
 }
