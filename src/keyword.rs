@@ -1,6 +1,6 @@
 use nom::{Err, IResult};
 
-use crate::parser::{ParserError, alpha1};
+use crate::parser::{alpha1, ParserError};
 
 macro_rules! implement_keyword_parser {
     ($parser_name:ident, $keyword:expr) => {
@@ -12,13 +12,9 @@ macro_rules! implement_keyword_parser {
                     $keyword.to_string(),
                     value.to_string(),
                 ))),
-                Err(Err::Error(ParserError::ExpectedAlphaFound(input, value))) => Err(
-                    Err::Error(ParserError::ExpectedKeywordFound(
-                        input,
-                        $keyword.to_string(),
-                        value
-                    ))
-                ),
+                Err(Err::Error(ParserError::ExpectedAlphaFound(input, value))) => Err(Err::Error(
+                    ParserError::ExpectedKeywordFound(input, $keyword.to_string(), value),
+                )),
                 Err(err) => Err(Err::convert(err)),
             }
         }

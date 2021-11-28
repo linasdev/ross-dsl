@@ -1,7 +1,7 @@
-use std::str::from_utf8_unchecked;
 use nom::character::complete::char;
-use nom::{Err, IResult};
 use nom::error::ErrorKind;
+use nom::{Err, IResult};
+use std::str::from_utf8_unchecked;
 
 use crate::parser::ParserError;
 
@@ -9,16 +9,16 @@ macro_rules! implement_symbol_parser {
     ($symbol_name:ident, $symbol:expr) => {
         pub fn $symbol_name(text: &str) -> IResult<&str, &str, ParserError> {
             match char($symbol)(text) {
-                Ok((input, _)) => unsafe {
-                    Ok((input, from_utf8_unchecked(&[$symbol as u8])))
-                },
-                Err(Err::Error(ParserError::Nom(input, kind))) if matches!(kind, ErrorKind::Char) => {
+                Ok((input, _)) => unsafe { Ok((input, from_utf8_unchecked(&[$symbol as u8]))) },
+                Err(Err::Error(ParserError::Nom(input, kind)))
+                    if matches!(kind, ErrorKind::Char) =>
+                {
                     Err(Err::Error(ParserError::ExpectedSymbolFound(
                         text.to_string(),
                         $symbol.to_string(),
                         input.to_string(),
                     )))
-                },
+                }
                 Err(err) => Err(Err::convert(err)),
             }
         }
@@ -29,12 +29,9 @@ macro_rules! implement_symbol_parser {
 
             #[test]
             fn $symbol_name() {
-                assert_eq!(
-                    super::$symbol_name(concat!($symbol, ";input")),
-                    unsafe {
-                        Ok((";input", from_utf8_unchecked(&[$symbol as u8])))
-                    },
-                );
+                assert_eq!(super::$symbol_name(concat!($symbol, ";input")), unsafe {
+                    Ok((";input", from_utf8_unchecked(&[$symbol as u8])))
+                },);
             }
 
             mod unexpected_token {

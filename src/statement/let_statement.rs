@@ -1,11 +1,11 @@
 use nom::multi::{many0, many1};
-use nom::sequence::{terminated, preceded, separated_pair, delimited};
+use nom::sequence::{delimited, preceded, separated_pair, terminated};
 use nom::{Err, IResult};
 
 use crate::keyword::let_keyword;
 use crate::literal::{literal, Literal};
 use crate::parser::{alpha1, ParserError};
-use crate::symbol::{semicolon, equal_sign, space};
+use crate::symbol::{equal_sign, semicolon, space};
 
 pub fn parse_let_statement(text: &str) -> IResult<&str, (String, Literal), ParserError> {
     let name_parser = delimited(many1(space), alpha1, many0(space));
@@ -15,12 +15,10 @@ pub fn parse_let_statement(text: &str) -> IResult<&str, (String, Literal), Parse
     let mut semicolon_parser = terminated(keyword_parser, semicolon);
 
     match semicolon_parser(text) {
-        Ok((input, (name, value))) => {
-            Ok((input, (name.to_string(), value)))
-        },
-        Err(Err::Error(ParserError::ExpectedAlphaFound(input, value))) => Err(
-            Err::Error(ParserError::ExpectedNameFound(input, value))
-        ),
+        Ok((input, (name, value))) => Ok((input, (name.to_string(), value))),
+        Err(Err::Error(ParserError::ExpectedAlphaFound(input, value))) => {
+            Err(Err::Error(ParserError::ExpectedNameFound(input, value)))
+        }
         Err(err) => Err(Err::convert(err)),
     }
 }

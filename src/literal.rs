@@ -66,10 +66,10 @@ pub fn literal(text: &str) -> IResult<&str, Literal, ParserError> {
         ))),
         Err(Err::Error(ParserError::ExpectedNumberFound(input, value))) => {
             Err(Err::Error(ParserError::ExpectedValueFound(input, value)))
-        },
+        }
         Err(Err::Error(ParserError::ExpectedSymbolFound(input, _, value))) => {
             Err(Err::Error(ParserError::ExpectedTypeFound(input, value)))
-        },
+        }
         Err(err) => Err(Err::convert(err)),
     }
 }
@@ -80,10 +80,7 @@ mod tests {
 
     #[test]
     fn hex_u8_test() {
-        assert_eq!(
-            literal("0xab~u8;input"),
-            Ok((";input", Literal::U8(0xab)))
-        );
+        assert_eq!(literal("0xab~u8;input"), Ok((";input", Literal::U8(0xab))));
     }
 
     #[test]
@@ -137,10 +134,7 @@ mod tests {
 
     #[test]
     fn decimal_u8_test() {
-        assert_eq!(
-            literal("123~u8;input"),
-            Ok((";input", Literal::U8(123)))
-        );
+        assert_eq!(literal("123~u8;input"), Ok((";input", Literal::U8(123))));
     }
 
     #[test]
@@ -156,10 +150,7 @@ mod tests {
 
     #[test]
     fn decimal_u16_test() {
-        assert_eq!(
-            literal("123~u16;input"),
-            Ok((";input", Literal::U16(123)))
-        );
+        assert_eq!(literal("123~u16;input"), Ok((";input", Literal::U16(123))));
     }
 
     #[test]
@@ -175,10 +166,7 @@ mod tests {
 
     #[test]
     fn decimal_u32_test() {
-        assert_eq!(
-            literal("123~u32;input"),
-            Ok((";input", Literal::U32(123)))
-        );
+        assert_eq!(literal("123~u32;input"), Ok((";input", Literal::U32(123))));
     }
 
     #[test]
@@ -194,18 +182,12 @@ mod tests {
 
     #[test]
     fn bool_true_test() {
-        assert_eq!(
-            literal("true;input"),
-            Ok((";input", Literal::Bool(true)))
-        );
+        assert_eq!(literal("true;input"), Ok((";input", Literal::Bool(true))));
     }
 
     #[test]
     fn bool_false_test() {
-        assert_eq!(
-            literal("false;input"),
-            Ok((";input", Literal::Bool(false)))
-        );
+        assert_eq!(literal("false;input"), Ok((";input", Literal::Bool(false))));
     }
 
     #[test]
