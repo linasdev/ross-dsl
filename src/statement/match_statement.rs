@@ -20,8 +20,8 @@ use crate::symbol::{close_brace, open_brace, semicolon};
 
 pub fn match_statement(text: &str) -> IResult<&str, Matcher, ParserError> {
     let mut event_match_parser = {
-        let content_parser = map_res(literal, |literal| {
-            let event_code = literal.try_into()?;
+        let content_parser = map_res(literal, |event_code| {
+            let event_code = event_code.try_into()?;
             let extractor = Box::new(EventCodeExtractor::new()) as Box<dyn Extractor>;
             let filter =
                 Box::new(ValueEqualToConstFilter::new(Value::U16(event_code))) as Box<dyn Filter>;
