@@ -22,7 +22,10 @@ macro_rules! implement_keyword_parser {
 
             #[test]
             fn $parser_name() {
-                assert_eq!(super::$parser_name(concat!($keyword, ";input")), Ok((";input", $keyword)));
+                assert_eq!(
+                    super::$parser_name(concat!($keyword, ";input")),
+                    Ok((";input", $keyword))
+                );
             }
 
             mod unexpected_token {

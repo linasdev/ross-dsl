@@ -27,7 +27,10 @@ macro_rules! implement_symbol_parser {
 
             #[test]
             fn $symbol_name() {
-                assert_eq!(super::$symbol_name(concat!($symbol, ";input")), Ok((";input", $symbol)));
+                assert_eq!(
+                    super::$symbol_name(concat!($symbol, ";input")),
+                    Ok((";input", $symbol))
+                );
             }
 
             mod unexpected_token {
