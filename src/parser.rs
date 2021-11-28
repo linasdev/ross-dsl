@@ -1,6 +1,11 @@
 use nom::error::{ErrorKind, ParseError};
+use nom::multi::{many0, separated_list0};
+use nom::sequence::{delimited, terminated};
 use nom::InputTakeAtPosition;
 use nom::{AsChar, Err, IResult};
+
+use crate::literal::{literal, Literal};
+use crate::symbol::{close_parenthesis, comma, open_parenthesis, space};
 
 #[derive(Debug, PartialEq)]
 pub enum ParserError {
@@ -96,6 +101,17 @@ pub fn dec1(text: &str) -> IResult<&str, &str, ParserError> {
         }
         Err(err) => Err(Err::convert(err)),
     }
+}
+
+pub fn argument0(text: &str) -> IResult<&str, Vec<Literal>, ParserError> {
+    // (    )
+    // ( asda , asd  )
+
+    delimited(
+        terminated(open_parenthesis, many0(space)),
+        separated_list0(comma, delimited(many0(space), literal, many0(space))),
+        close_parenthesis,
+    )(text)
 }
 
 #[cfg(test)]
@@ -214,6 +230,39 @@ mod tests {
             Err(Err::Error(ParserError::ExpectedNumberFound(
                 "".to_string(),
                 "".to_string()
+            )))
+        );
+    }
+
+    #[test]
+    fn argument0_two_arguments_test() {
+        assert_eq!(
+            argument0("(0xab~u16  ,  false )"),
+            Ok(("", vec![Literal::U16(0x00ab), Literal::Bool(false)]))
+        );
+    }
+
+    #[test]
+    fn argument0_one_argument_test() {
+        assert_eq!(
+            argument0("(  0xab~u16)"),
+            Ok(("", vec![Literal::U16(0x00ab)]))
+        );
+    }
+
+    #[test]
+    fn argument0_no_arguments_test() {
+        assert_eq!(argument0("(   )"), Ok(("", vec![])));
+    }
+
+    #[test]
+    fn argument0_empty_test() {
+        assert_eq!(
+            argument0(""),
+            Err(Err::Error(ParserError::ExpectedSymbolFound(
+                "".to_string(),
+                "(".to_string(),
+                "".to_string(),
             )))
         );
     }
