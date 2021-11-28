@@ -50,7 +50,8 @@ mod tests {
 
                 #[test]
                 fn extractor_test() {
-                    let (input, extractor) = parse_extractor(concat!(stringify!($extractor_type), "( );input")).unwrap();
+                    let (input, extractor) =
+                        parse_extractor(concat!(stringify!($extractor_type), "( );input")).unwrap();
 
                     assert_eq!(input, "input");
                     assert_eq!(
@@ -62,7 +63,8 @@ mod tests {
                 #[test]
                 fn missing_semicolon_test() {
                     assert_eq!(
-                        parse_extractor(concat!(stringify!($extractor_type), "( )input")).unwrap_err(),
+                        parse_extractor(concat!(stringify!($extractor_type), "( )input"))
+                            .unwrap_err(),
                         Err::Error(ParserError::ExpectedSymbolFound(
                             "input".to_string(),
                             ";".to_string(),
@@ -75,7 +77,8 @@ mod tests {
 
                 fn too_many_arguments_test() {
                     assert_eq!(
-                        parse_extractor(concat!(stringify!($extractor_type), "( false );input")).unwrap_err(),
+                        parse_extractor(concat!(stringify!($extractor_type), "( false );input"))
+                            .unwrap_err(),
                         Err::Error(ParserError::ExpectedArgumentsButGot(
                             "input".to_string(),
                             0,
@@ -90,7 +93,10 @@ mod tests {
     impl_tests_extractor_arg0!(none_extractor, NoneExtractor);
     impl_tests_extractor_arg0!(packet_extractor, PacketExtractor);
     impl_tests_extractor_arg0!(event_code_extractor, EventCodeExtractor);
-    impl_tests_extractor_arg0!(event_producer_address_extractor, EventProducerAddressExtractor);
+    impl_tests_extractor_arg0!(
+        event_producer_address_extractor,
+        EventProducerAddressExtractor
+    );
     impl_tests_extractor_arg0!(message_code_extractor, MessageCodeExtractor);
     impl_tests_extractor_arg0!(message_value_extractor, MessageValueExtractor);
     impl_tests_extractor_arg0!(button_index_extractor, ButtonIndexExtractor);
