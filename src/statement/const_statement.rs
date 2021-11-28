@@ -3,14 +3,14 @@ use nom::sequence::{terminated, preceded, separated_pair, delimited};
 use nom::{Err, IResult};
 
 use crate::keyword::const_keyword;
-use crate::literal::{parse_literal, Literal};
+use crate::literal::{literal, Literal};
 use crate::parser::{alpha1, ParserError};
 use crate::symbol::{semicolon, equal_sign, space};
 
 pub fn parse_const_statement(text: &str) -> IResult<&str, (String, Literal), ParserError> {
     let name_parser = delimited(many1(space), alpha1, many0(space));
     let equal_sign_parser = terminated(equal_sign, many0(space));
-    let name_value_pair_parser = separated_pair(name_parser, equal_sign_parser, parse_literal);
+    let name_value_pair_parser = separated_pair(name_parser, equal_sign_parser, literal);
     let keyword_parser = preceded(const_keyword, name_value_pair_parser);
     let mut semicolon_parser = terminated(keyword_parser, semicolon);
 

@@ -16,7 +16,7 @@ pub enum Literal {
     Bool(bool),
 }
 
-pub fn parse_literal(text: &str) -> IResult<&str, Literal, ParserError> {
+pub fn literal(text: &str) -> IResult<&str, Literal, ParserError> {
     let decimal_parser = separated_pair(dec1, tilde, alphanumeric1);
     let hex_parser = separated_pair(hex1, tilde, alphanumeric1);
     let boolean_parser = tuple((alt((false_keyword, true_keyword)), success("bool")));
@@ -81,7 +81,7 @@ mod tests {
     #[test]
     fn hex_u8_test() {
         assert_eq!(
-            parse_literal("0xab~u8;input"),
+            literal("0xab~u8;input"),
             Ok((";input", Literal::U8(0xab)))
         );
     }
@@ -89,7 +89,7 @@ mod tests {
     #[test]
     fn hex_u8_invalid_value_test() {
         assert_eq!(
-            parse_literal("0xabab~u8;input"),
+            literal("0xabab~u8;input"),
             Err(Err::Error(ParserError::ExpectedValueFound(
                 "0xabab~u8;input".to_string(),
                 "0xabab".to_string()
@@ -100,7 +100,7 @@ mod tests {
     #[test]
     fn hex_u16_test() {
         assert_eq!(
-            parse_literal("0xabab~u16;input"),
+            literal("0xabab~u16;input"),
             Ok((";input", Literal::U16(0xabab)))
         );
     }
@@ -108,7 +108,7 @@ mod tests {
     #[test]
     fn hex_u16_invalid_value_test() {
         assert_eq!(
-            parse_literal("0xababab~u16;input"),
+            literal("0xababab~u16;input"),
             Err(Err::Error(ParserError::ExpectedValueFound(
                 "0xababab~u16;input".to_string(),
                 "0xababab".to_string()
@@ -119,7 +119,7 @@ mod tests {
     #[test]
     fn hex_u32_test() {
         assert_eq!(
-            parse_literal("0xabababab~u32;input"),
+            literal("0xabababab~u32;input"),
             Ok((";input", Literal::U32(0xabab_abab)))
         );
     }
@@ -127,7 +127,7 @@ mod tests {
     #[test]
     fn hex_u32_invalid_value_test() {
         assert_eq!(
-            parse_literal("0xababababab~u32;input"),
+            literal("0xababababab~u32;input"),
             Err(Err::Error(ParserError::ExpectedValueFound(
                 "0xababababab~u32;input".to_string(),
                 "0xababababab".to_string()
@@ -138,7 +138,7 @@ mod tests {
     #[test]
     fn decimal_u8_test() {
         assert_eq!(
-            parse_literal("123~u8;input"),
+            literal("123~u8;input"),
             Ok((";input", Literal::U8(123)))
         );
     }
@@ -146,7 +146,7 @@ mod tests {
     #[test]
     fn decimal_u8_negative_test() {
         assert_eq!(
-            parse_literal("-123~u8;input"),
+            literal("-123~u8;input"),
             Err(Err::Error(ParserError::ExpectedValueFound(
                 "-123~u8;input".to_string(),
                 "-123".to_string()
@@ -157,7 +157,7 @@ mod tests {
     #[test]
     fn decimal_u16_test() {
         assert_eq!(
-            parse_literal("123~u16;input"),
+            literal("123~u16;input"),
             Ok((";input", Literal::U16(123)))
         );
     }
@@ -165,7 +165,7 @@ mod tests {
     #[test]
     fn decimal_u16_negative_test() {
         assert_eq!(
-            parse_literal("-123~u16;input"),
+            literal("-123~u16;input"),
             Err(Err::Error(ParserError::ExpectedValueFound(
                 "-123~u16;input".to_string(),
                 "-123".to_string()
@@ -176,7 +176,7 @@ mod tests {
     #[test]
     fn decimal_u32_test() {
         assert_eq!(
-            parse_literal("123~u32;input"),
+            literal("123~u32;input"),
             Ok((";input", Literal::U32(123)))
         );
     }
@@ -184,7 +184,7 @@ mod tests {
     #[test]
     fn decimal_u32_negative_test() {
         assert_eq!(
-            parse_literal("-123~u32;input"),
+            literal("-123~u32;input"),
             Err(Err::Error(ParserError::ExpectedValueFound(
                 "-123~u32;input".to_string(),
                 "-123".to_string()
@@ -195,7 +195,7 @@ mod tests {
     #[test]
     fn bool_true_test() {
         assert_eq!(
-            parse_literal("true;input"),
+            literal("true;input"),
             Ok((";input", Literal::Bool(true)))
         );
     }
@@ -203,7 +203,7 @@ mod tests {
     #[test]
     fn bool_false_test() {
         assert_eq!(
-            parse_literal("false;input"),
+            literal("false;input"),
             Ok((";input", Literal::Bool(false)))
         );
     }
@@ -211,7 +211,7 @@ mod tests {
     #[test]
     fn bool_invalid_value_test() {
         assert_eq!(
-            parse_literal("falsy;input"),
+            literal("falsy;input"),
             Err(Err::Error(ParserError::ExpectedValueFound(
                 "falsy;input".to_string(),
                 "falsy;input".to_string(),
@@ -222,7 +222,7 @@ mod tests {
     #[test]
     fn no_tilde_test() {
         assert_eq!(
-            parse_literal("0xab;input"),
+            literal("0xab;input"),
             Err(Err::Error(ParserError::ExpectedTypeFound(
                 "xab;input".to_string(),
                 "xab;input".to_string(),
@@ -233,7 +233,7 @@ mod tests {
     #[test]
     fn double_tilde_test() {
         assert_eq!(
-            parse_literal("0xab~~u8;input"),
+            literal("0xab~~u8;input"),
             Err(Err::Error(ParserError::ExpectedTypeFound(
                 "xab~~u8;input".to_string(),
                 "xab~~u8;input".to_string()
@@ -244,7 +244,7 @@ mod tests {
     #[test]
     fn no_type_test() {
         assert_eq!(
-            parse_literal("0xab~"),
+            literal("0xab~"),
             Err(Err::Error(ParserError::ExpectedTypeFound(
                 "xab~".to_string(),
                 "xab~".to_string(),
@@ -255,7 +255,7 @@ mod tests {
     #[test]
     fn invalid_type1_test() {
         assert_eq!(
-            parse_literal("0xab~u15;input"),
+            literal("0xab~u15;input"),
             Err(Err::Error(ParserError::ExpectedTypeFound(
                 "0xab~u15;input".to_string(),
                 "u15".to_string()
@@ -266,7 +266,7 @@ mod tests {
     #[test]
     fn invalid_type2_test() {
         assert_eq!(
-            parse_literal("0xab~u"),
+            literal("0xab~u"),
             Err(Err::Error(ParserError::ExpectedTypeFound(
                 "0xab~u".to_string(),
                 "u".to_string(),
