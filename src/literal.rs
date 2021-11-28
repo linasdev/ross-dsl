@@ -28,7 +28,6 @@ pub fn parse_literal(text: &str) -> IResult<&str, Literal, ParserError> {
 
     match alt((boolean_parser, alphanumeric_parser))(text)? {
         (input, (value, "u8")) => {
-            eprintln!("{} {}", input, value);
             if let Ok(value) = parse(value) {
                 Ok((input, Literal::U8(value)))
             } else {
