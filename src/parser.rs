@@ -8,6 +8,7 @@ pub enum ParserError {
     ExpectedSymbolFound(String, String, String),
     ExpectedValueFound(String, String),
     ExpectedTypeFound(String, String),
+    ExpectedNameFound(String, String),
 
     ExpectedAlphaFound(String, String),
     ExpectedAlphanumericFound(String, String),
