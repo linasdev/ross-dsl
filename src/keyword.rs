@@ -1,26 +1,30 @@
-use nom::character::complete::alpha1;
+use nom::character::complete::alpha0;
 use nom::{Err, IResult,};
 
 use crate::parser::ParserError;
-use crate::token::{KeywordToken, Token};
+use crate::token::KeywordToken;
 
-pub fn parse_keyword(input: &str) -> IResult<&str, Token, ParserError> {
-    match alpha1(input)? {
-        (input, "let") => Ok((input, KeywordToken::Let.into())),
-        (input, "const") => Ok((input, KeywordToken::Const.into())),
-        (input, "send") => Ok((input, KeywordToken::Send.into())),
-        (input, "from") => Ok((input, KeywordToken::From.into())),
-        (input, "to") => Ok((input, KeywordToken::To.into())),
-        (input, "if") => Ok((input, KeywordToken::If.into())),
-        (input, "do") => Ok((input, KeywordToken::Do.into())),
-        (input, "match") => Ok((input, KeywordToken::Match.into())),
-        (input, "event") => Ok((input, KeywordToken::Event.into())),
-        (input, "producer") => Ok((input, KeywordToken::Producer.into())),
-        (input, "tick") => Ok((input, KeywordToken::Tick.into())),
-        (input, "fire") => Ok((input, KeywordToken::Fire.into())),
-        (input, token) => Err(Err::Failure(ParserError::UnexpectedToken(
-            input.to_string(),
-            token.to_string(),
+pub fn parse_keyword(input: &str) -> IResult<&str, KeywordToken, ParserError> {
+    match alpha0(input)? {
+        (input, "let") => Ok((input, KeywordToken::Let)),
+        (input, "const") => Ok((input, KeywordToken::Const)),
+        (input, "send") => Ok((input, KeywordToken::Send)),
+        (input, "from") => Ok((input, KeywordToken::From)),
+        (input, "to") => Ok((input, KeywordToken::To)),
+        (input, "if") => Ok((input, KeywordToken::If)),
+        (input, "do") => Ok((input, KeywordToken::Do)),
+        (input, "match") => Ok((input, KeywordToken::Match)),
+        (input, "event") => Ok((input, KeywordToken::Event)),
+        (input, "producer") => Ok((input, KeywordToken::Producer)),
+        (input, "tick") => Ok((input, KeywordToken::Tick)),
+        (input, "fire") => Ok((input, KeywordToken::Fire)),
+        (input, token) => Err(Err::Failure(ParserError::ExpectedKeywordFound(
+            token.to_string() + input,
+            if token.is_empty() {
+                input.to_string()
+            } else {
+                token.to_string()
+            },
         ))),
     }
 }
@@ -33,7 +37,7 @@ mod tests {
     fn let_keyword_test() {
         assert_eq!(
             parse_keyword("let"),
-            Ok(("", Token::Keyword(KeywordToken::Let)))
+            Ok(("", KeywordToken::Let))
         );
     }
 
@@ -41,7 +45,7 @@ mod tests {
     fn const_keyword_test() {
         assert_eq!(
             parse_keyword("const"),
-            Ok(("", Token::Keyword(KeywordToken::Const)))
+            Ok(("", KeywordToken::Const))
         );
     }
 
@@ -49,7 +53,7 @@ mod tests {
     fn send_keyword_test() {
         assert_eq!(
             parse_keyword("send"),
-            Ok(("", Token::Keyword(KeywordToken::Send)))
+            Ok(("", KeywordToken::Send))
         );
     }
 
@@ -57,7 +61,7 @@ mod tests {
     fn from_keyword_test() {
         assert_eq!(
             parse_keyword("from"),
-            Ok(("", Token::Keyword(KeywordToken::From)))
+            Ok(("", KeywordToken::From))
         );
     }
 
@@ -65,7 +69,7 @@ mod tests {
     fn to_keyword_test() {
         assert_eq!(
             parse_keyword("to"),
-            Ok(("", Token::Keyword(KeywordToken::To)))
+            Ok(("", KeywordToken::To))
         );
     }
 
@@ -73,7 +77,7 @@ mod tests {
     fn if_test() {
         assert_eq!(
             parse_keyword("if"),
-            Ok(("", Token::Keyword(KeywordToken::If)))
+            Ok(("", KeywordToken::If))
         );
     }
 
@@ -81,7 +85,7 @@ mod tests {
     fn do_test() {
         assert_eq!(
             parse_keyword("do"),
-            Ok(("", Token::Keyword(KeywordToken::Do)))
+            Ok(("", KeywordToken::Do))
         );
     }
 
@@ -89,7 +93,7 @@ mod tests {
     fn match_test() {
         assert_eq!(
             parse_keyword("match"),
-            Ok(("", Token::Keyword(KeywordToken::Match)))
+            Ok(("", KeywordToken::Match))
         );
     }
 
@@ -97,7 +101,7 @@ mod tests {
     fn event_test() {
         assert_eq!(
             parse_keyword("event"),
-            Ok(("", Token::Keyword(KeywordToken::Event)))
+            Ok(("", KeywordToken::Event))
         );
     }
 
@@ -105,7 +109,7 @@ mod tests {
     fn producer_test() {
         assert_eq!(
             parse_keyword("producer"),
-            Ok(("", Token::Keyword(KeywordToken::Producer)))
+            Ok(("", KeywordToken::Producer))
         );
     }
 
@@ -113,7 +117,7 @@ mod tests {
     fn tick_test() {
         assert_eq!(
             parse_keyword("tick"),
-            Ok(("", Token::Keyword(KeywordToken::Tick)))
+            Ok(("", KeywordToken::Tick))
         );
     }
 
@@ -121,7 +125,7 @@ mod tests {
     fn fire_test() {
         assert_eq!(
             parse_keyword("fire"),
-            Ok(("", Token::Keyword(KeywordToken::Fire)))
+            Ok(("", KeywordToken::Fire))
         );
     }
 
@@ -129,9 +133,20 @@ mod tests {
     fn unexpected_token_test() {
         assert_eq!(
             parse_keyword("while123123"),
-            Err(Err::Failure(ParserError::UnexpectedToken(
-                "123123".to_string(),
+            Err(Err::Failure(ParserError::ExpectedKeywordFound(
+                "while123123".to_string(),
                 "while".to_string()
+            )))
+        );
+    }
+
+    #[test]
+    fn non_alpha_test() {
+        assert_eq!(
+            parse_keyword("123123"),
+            Err(Err::Failure(ParserError::ExpectedKeywordFound(
+                "123123".to_string(),
+                "123123".to_string()
             )))
         );
     }

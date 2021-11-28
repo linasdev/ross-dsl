@@ -1,8 +1,8 @@
-use nom::error::{ParseError, ErrorKind};
+use nom::error::{ErrorKind, ParseError};
 
 #[derive(Debug, PartialEq)]
 pub enum ParserError {
-    UnexpectedToken(String, String),
+    ExpectedKeywordFound(String, String),
     Nom(String, ErrorKind),
 }
 
