@@ -3,126 +3,72 @@ use nom::{Err, IResult};
 
 use crate::parser::ParserError;
 
-#[derive(Debug, PartialEq)]
-pub enum Keyword {
-    Let,
-    Const,
-    Send,
-    From,
-    To,
-    If,
-    Do,
-    Match,
-    Event,
-    Producer,
-    Tick,
-    Fire,
+macro_rules! implement_keyword_parser {
+    ($parser_name:ident, $keyword:expr) => {
+        pub fn $parser_name(text: &str) -> IResult<&str, &str, ParserError> {
+            match alpha0(text)? {
+                (input, $keyword) => Ok((input, $keyword)),
+                (_, value) => Err(Err::Failure(ParserError::ExpectedKeywordFound(
+                    text.to_string(),
+                    $keyword.to_string(),
+                    value.to_string(),
+                ))),
+            }
+        }
+
+        #[cfg(test)]
+        mod $parser_name {
+            use super::*;
+
+            #[test]
+            fn $parser_name() {
+                assert_eq!(super::$parser_name(concat!($keyword, ";input")), Ok((";input", $keyword)));
+            }
+
+            mod unexpected_token {
+                use super::*;
+
+                #[test]
+                fn $parser_name() {
+                    assert_eq!(
+                        super::super::$parser_name("while123123"),
+                        Err(Err::Failure(ParserError::ExpectedKeywordFound(
+                            "while123123".to_string(),
+                            $keyword.to_string(),
+                            "while".to_string()
+                        )))
+                    );
+                }
+            }
+
+            mod non_alpha {
+                use super::*;
+
+                #[test]
+                fn $parser_name() {
+                    assert_eq!(
+                        super::super::$parser_name("while123123"),
+                        Err(Err::Failure(ParserError::ExpectedKeywordFound(
+                            "while123123".to_string(),
+                            $keyword.to_string(),
+                            "while".to_string()
+                        )))
+                    );
+                }
+            }
+        }
+    };
 }
 
-pub fn parse_keyword(text: &str) -> IResult<&str, Keyword, ParserError> {
-    match alpha0(text)? {
-        (input, "let") => Ok((input, Keyword::Let)),
-        (input, "const") => Ok((input, Keyword::Const)),
-        (input, "send") => Ok((input, Keyword::Send)),
-        (input, "from") => Ok((input, Keyword::From)),
-        (input, "to") => Ok((input, Keyword::To)),
-        (input, "if") => Ok((input, Keyword::If)),
-        (input, "do") => Ok((input, Keyword::Do)),
-        (input, "match") => Ok((input, Keyword::Match)),
-        (input, "event") => Ok((input, Keyword::Event)),
-        (input, "producer") => Ok((input, Keyword::Producer)),
-        (input, "tick") => Ok((input, Keyword::Tick)),
-        (input, "fire") => Ok((input, Keyword::Fire)),
-        (_, token) => Err(Err::Failure(ParserError::ExpectedKeywordFound(
-            text.to_string(),
-            token.to_string(),
-        ))),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn let_keyword_test() {
-        assert_eq!(parse_keyword("let"), Ok(("", Keyword::Let)));
-    }
-
-    #[test]
-    fn const_keyword_test() {
-        assert_eq!(parse_keyword("const"), Ok(("", Keyword::Const)));
-    }
-
-    #[test]
-    fn send_keyword_test() {
-        assert_eq!(parse_keyword("send"), Ok(("", Keyword::Send)));
-    }
-
-    #[test]
-    fn from_keyword_test() {
-        assert_eq!(parse_keyword("from"), Ok(("", Keyword::From)));
-    }
-
-    #[test]
-    fn to_keyword_test() {
-        assert_eq!(parse_keyword("to"), Ok(("", Keyword::To)));
-    }
-
-    #[test]
-    fn if_test() {
-        assert_eq!(parse_keyword("if"), Ok(("", Keyword::If)));
-    }
-
-    #[test]
-    fn do_test() {
-        assert_eq!(parse_keyword("do"), Ok(("", Keyword::Do)));
-    }
-
-    #[test]
-    fn match_test() {
-        assert_eq!(parse_keyword("match"), Ok(("", Keyword::Match)));
-    }
-
-    #[test]
-    fn event_test() {
-        assert_eq!(parse_keyword("event"), Ok(("", Keyword::Event)));
-    }
-
-    #[test]
-    fn producer_test() {
-        assert_eq!(parse_keyword("producer"), Ok(("", Keyword::Producer)));
-    }
-
-    #[test]
-    fn tick_test() {
-        assert_eq!(parse_keyword("tick"), Ok(("", Keyword::Tick)));
-    }
-
-    #[test]
-    fn fire_test() {
-        assert_eq!(parse_keyword("fire"), Ok(("", Keyword::Fire)));
-    }
-
-    #[test]
-    fn unexpected_token_test() {
-        assert_eq!(
-            parse_keyword("while123123"),
-            Err(Err::Failure(ParserError::ExpectedKeywordFound(
-                "while123123".to_string(),
-                "while".to_string()
-            )))
-        );
-    }
-
-    #[test]
-    fn non_alpha_test() {
-        assert_eq!(
-            parse_keyword("123123"),
-            Err(Err::Failure(ParserError::ExpectedKeywordFound(
-                "123123".to_string(),
-                "".to_string()
-            )))
-        );
-    }
-}
+implement_keyword_parser!(let_keyword, "let");
+implement_keyword_parser!(const_keyword, "const");
+implement_keyword_parser!(send_keyword, "send");
+implement_keyword_parser!(from_keyword, "from");
+implement_keyword_parser!(to_keyword, "to");
+implement_keyword_parser!(if_keyword, "if");
+implement_keyword_parser!(do_keyword, "do");
+implement_keyword_parser!(match_keyword, "match");
+implement_keyword_parser!(event_keyword, "event");
+implement_keyword_parser!(producer_keyword, "producer");
+implement_keyword_parser!(tick_keyword, "tick");
+implement_keyword_parser!(fire_keyword, "fire");
