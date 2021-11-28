@@ -4,8 +4,8 @@ use nom::{Err, IResult,};
 use crate::parser::ParserError;
 use crate::token::{KeywordToken, Token};
 
-pub fn parse_keyword(text: &str) -> IResult<&str, Token, ParserError> {
-    match alpha1(text)? {
+pub fn parse_keyword(input: &str) -> IResult<&str, Token, ParserError> {
+    match alpha1(input)? {
         (input, "let") => Ok((input, KeywordToken::Let.into())),
         (input, "const") => Ok((input, KeywordToken::Const.into())),
         (input, "send") => Ok((input, KeywordToken::Send.into())),
