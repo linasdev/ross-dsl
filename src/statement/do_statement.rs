@@ -13,7 +13,10 @@ use crate::symbol::{close_brace, open_brace};
 pub fn do_statement(text: &str) -> IResult<&str, EventProcessor, ParserError> {
     let content_parser = preceded(
         open_brace,
-        pair(many0(preceded(multispace0, match_statement)), many1(preceded(multispace0, fire_statement))),
+        pair(
+            many0(preceded(multispace0, match_statement)),
+            many1(preceded(multispace0, fire_statement)),
+        ),
     );
     let keyword_parser = preceded(do_keyword, preceded(multispace0, content_parser));
     let mut close_brace_parser = terminated(keyword_parser, preceded(multispace0, close_brace));
@@ -30,7 +33,9 @@ pub fn do_statement(text: &str) -> IResult<&str, EventProcessor, ParserError> {
 mod tests {
     use super::*;
 
-    use ross_config::extractor::{EventCodeExtractor, PacketExtractor, EventProducerAddressExtractor};
+    use ross_config::extractor::{
+        EventCodeExtractor, EventProducerAddressExtractor, PacketExtractor,
+    };
     use ross_config::filter::ValueEqualToConstFilter;
     use ross_config::producer::PacketProducer;
     use ross_config::Value;
