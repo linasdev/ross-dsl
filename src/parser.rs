@@ -8,8 +8,11 @@ pub enum ParserError {
     ExpectedSymbolFound(String, String, String),
     ExpectedValueFound(String, String),
     ExpectedTypeFound(String, String),
+
     ExpectedAlphaFound(String, String),
+    ExpectedAlphanumericFound(String, String),
     ExpectedNumberFound(String, String),
+
     Nom(String, ErrorKind),
 }
 
@@ -32,13 +35,35 @@ impl From<(&str, ErrorKind)> for ParserError {
 pub fn alpha1(text: &str) -> IResult<&str, &str, ParserError> {
     match text.split_at_position1_complete::<_, ParserError>(
         |item| !item.is_alpha(),
+        ErrorKind::Alpha,
+    ) {
+        Ok((input, value)) => Ok((input, value)),
+        Err(Err::Error(ParserError::Nom(input, kind)))
+            if matches!(kind, ErrorKind::Alpha) =>
+        {
+            Err(Err::Error(ParserError::ExpectedAlphaFound(
+                text.to_string(),
+                if let Some(value) = input.chars().nth(0) {
+                    value.to_string()
+                } else {
+                    "".to_string()
+                },
+            )))
+        }
+        Err(err) => Err(Err::convert(err)),
+    }
+}
+
+pub fn alphanumeric1(text: &str) -> IResult<&str, &str, ParserError> {
+    match text.split_at_position1_complete::<_, ParserError>(
+        |item| !item.is_alphanumeric(),
         ErrorKind::AlphaNumeric,
     ) {
         Ok((input, value)) => Ok((input, value)),
         Err(Err::Error(ParserError::Nom(input, kind)))
             if matches!(kind, ErrorKind::AlphaNumeric) =>
         {
-            Err(Err::Error(ParserError::ExpectedAlphaFound(
+            Err(Err::Error(ParserError::ExpectedAlphanumericFound(
                 text.to_string(),
                 if let Some(value) = input.chars().nth(0) {
                     value.to_string()
@@ -116,6 +141,33 @@ mod tests {
         assert_eq!(
             alpha1(""),
             Err(Err::Error(ParserError::ExpectedAlphaFound(
+                "".to_string(),
+                "".to_string()
+            )))
+        );
+    }
+
+    #[test]
+    fn alphanumeric1_test() {
+        assert_eq!(alphanumeric1("while123123;input"), Ok((";input", "while123123")));
+    }
+
+    #[test]
+    fn alphanumeric1_non_alpha_test() {
+        assert_eq!(
+            alphanumeric1(";123123"),
+            Err(Err::Error(ParserError::ExpectedAlphanumericFound(
+                ";123123".to_string(),
+                ";".to_string()
+            )))
+        );
+    }
+
+    #[test]
+    fn alphanumeric1_empty_test() {
+        assert_eq!(
+            alphanumeric1(""),
+            Err(Err::Error(ParserError::ExpectedAlphanumericFound(
                 "".to_string(),
                 "".to_string()
             )))
