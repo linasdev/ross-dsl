@@ -1,11 +1,11 @@
 use nom::error::{ErrorKind, ParseError};
-use nom::multi::{many0, separated_list0};
+use nom::multi::separated_list0;
 use nom::sequence::{delimited, terminated};
 use nom::InputTakeAtPosition;
 use nom::{AsChar, Err, IResult};
 
 use crate::literal::{literal, Literal};
-use crate::symbol::{close_parenthesis, comma, open_parenthesis, space};
+use crate::symbol::{close_parenthesis, comma, open_parenthesis};
 
 #[derive(Debug, PartialEq)]
 pub enum ParserError {
@@ -104,14 +104,29 @@ pub fn dec1(text: &str) -> IResult<&str, &str, ParserError> {
 }
 
 pub fn argument0(text: &str) -> IResult<&str, Vec<Literal>, ParserError> {
-    // (    )
-    // ( asda , asd  )
-
     delimited(
-        terminated(open_parenthesis, many0(space)),
-        separated_list0(comma, delimited(many0(space), literal, many0(space))),
+        terminated(open_parenthesis, multispace0),
+        separated_list0(comma, delimited(multispace0, literal, multispace0)),
         close_parenthesis,
     )(text)
+}
+
+pub fn multispace0(text: &str) -> IResult<&str, &str, ParserError> {
+    nom::character::complete::multispace0(text)
+}
+
+pub fn multispace1(text: &str) -> IResult<&str, &str, ParserError> {
+    match nom::character::complete::multispace1(text) {
+        Ok((input, value)) => Ok((input, value)),
+        Err(Err::Error(ParserError::Nom(input, kind))) if matches!(kind, ErrorKind::MultiSpace) => {
+            Err(Err::Error(ParserError::ExpectedSymbolFound(
+                input.clone(),
+                " ".to_string(),
+                input,
+            )))
+        }
+        Err(err) => Err(Err::convert(err)),
+    }
 }
 
 #[cfg(test)]
@@ -263,6 +278,40 @@ mod tests {
                 "".to_string(),
                 "(".to_string(),
                 "".to_string(),
+            )))
+        );
+    }
+
+    #[test]
+    fn multispace_test() {
+        assert_eq!(multispace0(" asd"), Ok(("asd", " ")),);
+    }
+
+    #[test]
+    fn multispace1_two_spaces_test() {
+        assert_eq!(multispace1("  asd"), Ok(("asd", "  ")),);
+    }
+
+    #[test]
+    fn multispace1_zero_spaces_test() {
+        assert_eq!(
+            multispace1("asd"),
+            Err(Err::Error(ParserError::ExpectedSymbolFound(
+                "asd".to_string(),
+                " ".to_string(),
+                "asd".to_string()
+            )))
+        );
+    }
+
+    #[test]
+    fn multispace1_empty_test() {
+        assert_eq!(
+            multispace1(""),
+            Err(Err::Error(ParserError::ExpectedSymbolFound(
+                "".to_string(),
+                " ".to_string(),
+                "".to_string()
             )))
         );
     }

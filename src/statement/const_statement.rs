@@ -1,15 +1,14 @@
-use nom::multi::{many0, many1};
 use nom::sequence::{delimited, preceded, separated_pair, terminated};
 use nom::{Err, IResult};
 
 use crate::keyword::const_keyword;
 use crate::literal::{literal, Literal};
-use crate::parser::{alpha1, ParserError};
-use crate::symbol::{equal_sign, semicolon, space};
+use crate::parser::{alpha1, multispace0, multispace1, ParserError};
+use crate::symbol::{equal_sign, semicolon};
 
 pub fn parse_const_statement(text: &str) -> IResult<&str, (String, Literal), ParserError> {
-    let name_parser = delimited(many1(space), alpha1, many0(space));
-    let equal_sign_parser = terminated(equal_sign, many0(space));
+    let name_parser = delimited(multispace1, alpha1, multispace0);
+    let equal_sign_parser = terminated(equal_sign, multispace0);
     let name_value_pair_parser = separated_pair(name_parser, equal_sign_parser, literal);
     let keyword_parser = preceded(const_keyword, name_value_pair_parser);
     let mut semicolon_parser = terminated(keyword_parser, semicolon);
