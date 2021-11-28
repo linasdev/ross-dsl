@@ -85,14 +85,14 @@ mod tests {
 
     use ross_config::Value;
 
-    macro_rules! impl_tests_extractor_arg1 {
+    macro_rules! impl_tests_filter_arg1 {
         ($test_module_name:ident, $filter_type:ty, ($argument0:expr, $argument0_value:expr)) => {
             mod $test_module_name {
                 use super::*;
 
                 #[test]
-                fn extractor_test() {
-                    let (input, extractor) = filter(concat!(
+                fn filter_test() {
+                    let (input, filter) = filter(concat!(
                         stringify!($filter_type),
                         "( ",
                         $argument0,
@@ -102,7 +102,7 @@ mod tests {
 
                     assert_eq!(input, "input");
                     assert_eq!(
-                        format!("{:?}", extractor),
+                        format!("{:?}", filter),
                         format!("{:?}", <$filter_type>::new($argument0_value))
                     );
                 }
@@ -155,14 +155,14 @@ mod tests {
         };
     }
 
-    macro_rules! impl_tests_extractor_arg2 {
+    macro_rules! impl_tests_filter_arg2 {
         ($test_module_name:ident, $filter_type:ty, ($argument0:expr, $argument0_value:expr), ($argument1:expr, $argument1_value:expr)) => {
             mod $test_module_name {
                 use super::*;
 
                 #[test]
-                fn extractor_test() {
-                    let (input, extractor) = filter(concat!(
+                fn filter_test() {
+                    let (input, filter) = filter(concat!(
                         stringify!($filter_type),
                         "( ",
                         $argument0,
@@ -174,7 +174,7 @@ mod tests {
 
                     assert_eq!(input, "input");
                     assert_eq!(
-                        format!("{:?}", extractor),
+                        format!("{:?}", filter),
                         format!(
                             "{:?}",
                             <$filter_type>::new($argument0_value, $argument1_value)
@@ -235,56 +235,56 @@ mod tests {
         };
     }
 
-    impl_tests_extractor_arg1!(
+    impl_tests_filter_arg1!(
         value_equal_to_const_filter,
         ValueEqualToConstFilter,
         ("0xabababab~u32", Value::U32(0xabab_abab))
     );
-    impl_tests_extractor_arg2!(
+    impl_tests_filter_arg2!(
         state_equal_to_const_filter,
         StateEqualToConstFilter,
         ("0xabababab~u32", 0xabab_abab),
         ("0xbabababa~u32", Value::U32(0xbaba_baba))
     );
-    impl_tests_extractor_arg1!(
+    impl_tests_filter_arg1!(
         state_equal_to_value_filter,
         StateEqualToValueFilter,
         ("0xabababab~u32", 0xabab_abab)
     );
-    impl_tests_extractor_arg2!(
+    impl_tests_filter_arg2!(
         increment_state_by_const_filter,
         IncrementStateByConstFilter,
         ("0xabababab~u32", 0xabab_abab),
         ("0xbabababa~u32", Value::U32(0xbaba_baba))
     );
-    impl_tests_extractor_arg1!(
+    impl_tests_filter_arg1!(
         increment_state_by_value_filter,
         IncrementStateByValueFilter,
         ("0xabababab~u32", 0xabab_abab)
     );
-    impl_tests_extractor_arg2!(
+    impl_tests_filter_arg2!(
         decrement_state_by_const_filter,
         DecrementStateByConstFilter,
         ("0xabababab~u32", 0xabab_abab),
         ("0xbabababa~u32", Value::U32(0xbaba_baba))
     );
-    impl_tests_extractor_arg1!(
+    impl_tests_filter_arg1!(
         decrement_state_by_value_filter,
         DecrementStateByValueFilter,
         ("0xabababab~u32", 0xabab_abab)
     );
-    impl_tests_extractor_arg2!(
+    impl_tests_filter_arg2!(
         set_state_to_const_filter,
         SetStateToConstFilter,
         ("0xabababab~u32", 0xabab_abab),
         ("0xbabababa~u32", Value::U32(0xbaba_baba))
     );
-    impl_tests_extractor_arg1!(
+    impl_tests_filter_arg1!(
         set_state_to_value_filter,
         SetStateToValueFilter,
         ("0xabababab~u32", 0xabab_abab)
     );
-    impl_tests_extractor_arg1!(
+    impl_tests_filter_arg1!(
         flip_state_filter,
         FlipStateFilter,
         ("0xabababab~u32", 0xabab_abab)
