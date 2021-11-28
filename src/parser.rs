@@ -1,4 +1,4 @@
-use nom::error::{ErrorKind, ParseError};
+use nom::error::{ErrorKind, FromExternalError, ParseError};
 use nom::multi::separated_list0;
 use nom::sequence::{delimited, terminated};
 use nom::InputTakeAtPosition;
@@ -36,6 +36,12 @@ impl ParseError<&str> for ParserError {
 
     fn append(_: &str, _: ErrorKind, other: Self) -> Self {
         other
+    }
+}
+
+impl FromExternalError<&str, ParserError> for ParserError {
+    fn from_external_error(_input: &str, _kind: ErrorKind, e: ParserError) -> Self {
+        e
     }
 }
 
