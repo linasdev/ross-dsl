@@ -1,3 +1,4 @@
+use std::str::from_utf8_unchecked;
 use nom::character::complete::char;
 use nom::{Err, IResult};
 use nom::error::ErrorKind;
@@ -6,9 +7,11 @@ use crate::parser::ParserError;
 
 macro_rules! implement_symbol_parser {
     ($symbol_name:ident, $symbol:expr) => {
-        pub fn $symbol_name(text: &str) -> IResult<&str, char, ParserError> {
+        pub fn $symbol_name(text: &str) -> IResult<&str, &str, ParserError> {
             match char($symbol)(text) {
-                Ok((input, _)) => Ok((input, $symbol)),
+                Ok((input, _)) => unsafe {
+                    Ok((input, from_utf8_unchecked(&[$symbol as u8])))
+                },
                 Err(Err::Error(ParserError::Nom(input, kind))) if matches!(kind, ErrorKind::Char) => {
                     Err(Err::Error(ParserError::ExpectedSymbolFound(
                         text.to_string(),
@@ -28,7 +31,9 @@ macro_rules! implement_symbol_parser {
             fn $symbol_name() {
                 assert_eq!(
                     super::$symbol_name(concat!($symbol, ";input")),
-                    Ok((";input", $symbol))
+                    unsafe {
+                        Ok((";input", from_utf8_unchecked(&[$symbol as u8])))
+                    },
                 );
             }
 
