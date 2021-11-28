@@ -3,12 +3,15 @@ use nom::combinator::success;
 use nom::sequence::{separated_pair, tuple};
 use nom::{Err, IResult};
 use parse_int::parse;
+use std::convert::TryInto;
+
+use ross_config::Value;
 
 use crate::keyword::{false_keyword, true_keyword};
 use crate::parser::{alphanumeric1, dec1, hex1, ParserError};
 use crate::symbol::tilde;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
     U8(u8),
     U16(u16),
@@ -71,6 +74,107 @@ pub fn literal(text: &str) -> IResult<&str, Literal, ParserError> {
             Err(Err::Error(ParserError::ExpectedTypeFound(input, value)))
         }
         Err(err) => Err(Err::convert(err)),
+    }
+}
+
+impl TryInto<u8> for Literal {
+    type Error = ParserError;
+
+    fn try_into(self) -> Result<u8, Self::Error> {
+        match self {
+            Literal::U8(value) => Ok(value),
+            Literal::U16(_) => Err(ParserError::CastFromToNotAllowed(
+                "u16".to_string(),
+                "u8".to_string(),
+            )),
+            Literal::U32(_) => Err(ParserError::CastFromToNotAllowed(
+                "u32".to_string(),
+                "u8".to_string(),
+            )),
+            Literal::Bool(_) => Err(ParserError::CastFromToNotAllowed(
+                "bool".to_string(),
+                "u8".to_string(),
+            )),
+        }
+    }
+}
+
+impl TryInto<u16> for Literal {
+    type Error = ParserError;
+
+    fn try_into(self) -> Result<u16, Self::Error> {
+        match self {
+            Literal::U8(_) => Err(ParserError::CastFromToNotAllowed(
+                "u8".to_string(),
+                "u16".to_string(),
+            )),
+            Literal::U16(value) => Ok(value),
+            Literal::U32(_) => Err(ParserError::CastFromToNotAllowed(
+                "u32".to_string(),
+                "u16".to_string(),
+            )),
+            Literal::Bool(_) => Err(ParserError::CastFromToNotAllowed(
+                "bool".to_string(),
+                "u16".to_string(),
+            )),
+        }
+    }
+}
+
+impl TryInto<u32> for Literal {
+    type Error = ParserError;
+
+    fn try_into(self) -> Result<u32, Self::Error> {
+        match self {
+            Literal::U8(_) => Err(ParserError::CastFromToNotAllowed(
+                "u8".to_string(),
+                "u32".to_string(),
+            )),
+            Literal::U16(_) => Err(ParserError::CastFromToNotAllowed(
+                "u16".to_string(),
+                "u32".to_string(),
+            )),
+            Literal::U32(value) => Ok(value),
+            Literal::Bool(_) => Err(ParserError::CastFromToNotAllowed(
+                "bool".to_string(),
+                "u32".to_string(),
+            )),
+        }
+    }
+}
+
+impl TryInto<bool> for Literal {
+    type Error = ParserError;
+
+    fn try_into(self) -> Result<bool, Self::Error> {
+        match self {
+            Literal::U8(_) => Err(ParserError::CastFromToNotAllowed(
+                "u8".to_string(),
+                "bool".to_string(),
+            )),
+            Literal::U16(_) => Err(ParserError::CastFromToNotAllowed(
+                "u16".to_string(),
+                "bool".to_string(),
+            )),
+            Literal::U32(_) => Err(ParserError::CastFromToNotAllowed(
+                "u32".to_string(),
+                "bool".to_string(),
+            )),
+            Literal::Bool(value) => Ok(value),
+        }
+    }
+}
+
+impl TryInto<Value> for Literal {
+    type Error = ParserError;
+
+    fn try_into(self) -> Result<Value, Self::Error> {
+        match self {
+            Literal::U8(value) => Ok(Value::U8(value)),
+            Literal::U16(value) => Ok(Value::U16(value)),
+            Literal::U32(value) => Ok(Value::U32(value)),
+            Literal::Bool(value) => Ok(Value::Bool(value)),
+        }
     }
 }
 

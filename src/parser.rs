@@ -19,7 +19,14 @@ pub enum ParserError {
     ExpectedAlphanumericFound(String, String),
     ExpectedNumberFound(String, String),
 
+    ExpectedArgumentsButGot(String, usize, usize),
+
+    UnknownExtractor(String, String),
+    UnknownFilter(String, String),
+
     Nom(String, ErrorKind),
+
+    CastFromToNotAllowed(String, String),
 }
 
 impl ParseError<&str> for ParserError {
