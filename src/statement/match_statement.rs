@@ -22,6 +22,7 @@ pub fn match_statement(text: &str) -> IResult<&str, Matcher, ParserError> {
     let mut event_match_parser = {
         let content_parser = map_res(literal, |event_code| {
             let event_code = event_code.try_into()?;
+
             let extractor = Box::new(EventCodeExtractor::new()) as Box<dyn Extractor>;
             let filter =
                 Box::new(ValueEqualToConstFilter::new(Value::U16(event_code))) as Box<dyn Filter>;
@@ -30,8 +31,10 @@ pub fn match_statement(text: &str) -> IResult<&str, Matcher, ParserError> {
         });
 
         let event_keyword_parser = preceded(event_keyword, preceded(multispace1, content_parser));
+
         let match_keyword_parser =
             preceded(match_keyword, preceded(multispace1, event_keyword_parser));
+
         terminated(match_keyword_parser, semicolon)
     };
 
@@ -45,6 +48,7 @@ pub fn match_statement(text: &str) -> IResult<&str, Matcher, ParserError> {
     let mut producer_match_parser = {
         let content_parser = map_res(literal, |producer_address| {
             let producer_address = producer_address.try_into()?;
+
             let extractor = Box::new(EventProducerAddressExtractor::new()) as Box<dyn Extractor>;
             let filter = Box::new(ValueEqualToConstFilter::new(Value::U16(producer_address)))
                 as Box<dyn Filter>;
@@ -54,10 +58,12 @@ pub fn match_statement(text: &str) -> IResult<&str, Matcher, ParserError> {
 
         let producer_keyword_parser =
             preceded(producer_keyword, preceded(multispace1, content_parser));
+
         let match_keyword_parser = preceded(
             match_keyword,
             preceded(multispace1, producer_keyword_parser),
         );
+
         terminated(match_keyword_parser, semicolon)
     };
 
@@ -72,9 +78,11 @@ pub fn match_statement(text: &str) -> IResult<&str, Matcher, ParserError> {
         let extractor_parser = alt((delimited(multispace0, extractor, multispace0), |input| {
             Ok((input, Box::new(NoneExtractor::new()) as Box<dyn Extractor>))
         }));
+
         let filter_parser = delimited(multispace0, filter, multispace0);
         let content_parser = preceded(open_brace, pair(extractor_parser, filter_parser));
         let keyword_parser = preceded(match_keyword, preceded(multispace1, content_parser));
+
         terminated(keyword_parser, preceded(multispace0, close_brace))
     };
 
