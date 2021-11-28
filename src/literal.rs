@@ -6,6 +6,7 @@ use parse_int::parse;
 use std::convert::TryInto;
 
 use ross_config::Value;
+use ross_protocol::event::message::MessageValue;
 
 use crate::keyword::{false_keyword, true_keyword};
 use crate::parser::{alphanumeric1, dec1, hex1, ParserError};
@@ -174,6 +175,19 @@ impl TryInto<Value> for Literal {
             Literal::U16(value) => Ok(Value::U16(value)),
             Literal::U32(value) => Ok(Value::U32(value)),
             Literal::Bool(value) => Ok(Value::Bool(value)),
+        }
+    }
+}
+
+impl TryInto<MessageValue> for Literal {
+    type Error = ParserError;
+
+    fn try_into(self) -> Result<MessageValue, Self::Error> {
+        match self {
+            Literal::U8(value) => Ok(MessageValue::U8(value)),
+            Literal::U16(value) => Ok(MessageValue::U16(value)),
+            Literal::U32(value) => Ok(MessageValue::U32(value)),
+            Literal::Bool(value) => Ok(MessageValue::Bool(value)),
         }
     }
 }

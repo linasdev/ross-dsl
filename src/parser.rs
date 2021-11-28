@@ -23,6 +23,7 @@ pub enum ParserError {
 
     UnknownExtractor(String, String),
     UnknownFilter(String, String),
+    UnknownProducer(String, String),
 
     Nom(String, ErrorKind),
 

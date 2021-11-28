@@ -4,5 +4,6 @@ pub mod item;
 pub mod keyword;
 pub mod literal;
 pub mod parser;
+pub mod producer;
 pub mod statement;
 pub mod symbol;
