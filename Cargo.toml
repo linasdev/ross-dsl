@@ -13,3 +13,27 @@ parse_int = "0.5.0"
 ross-config = "2.3.0"
 ross-protocol = "1.25.0"
 nom = "7.1.0"
+
+[[example]]
+name = "save-button-state"
+path = "examples/save_button_state.rs"
+
+[[example]]
+name = "send-event"
+path = "examples/send_event.rs"
+
+[[example]]
+name = "broadcast-event"
+path = "examples/broadcast_event.rs"
+
+[[example]]
+name = "increment-state-on-tick"
+path = "examples/increment_state_on_tick.rs"
+
+[[example]]
+name = "multiple-creators"
+path = "examples/multiple_creators.rs"
+
+[[example]]
+name = "send-if-match"
+path = "examples/send_if_match.rs"

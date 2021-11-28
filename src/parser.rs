@@ -1,10 +1,18 @@
+use nom::combinator::all_consuming;
 use nom::error::{ErrorKind, FromExternalError, ParseError};
-use nom::multi::separated_list0;
-use nom::sequence::{delimited, terminated};
+use nom::multi::{many0, separated_list0};
+use nom::sequence::{delimited, preceded, terminated, tuple};
 use nom::InputTakeAtPosition;
 use nom::{AsChar, Err, IResult};
+use std::collections::BTreeMap;
+use std::convert::TryInto;
+
+use ross_config::config::Config;
 
 use crate::literal::{literal, Literal};
+use crate::statement::const_statement::const_statement;
+use crate::statement::do_statement::do_statement;
+use crate::statement::let_statement::let_statement;
 use crate::symbol::{close_parenthesis, comma, open_parenthesis};
 
 #[derive(Debug, PartialEq)]
@@ -49,6 +57,36 @@ impl FromExternalError<&str, ParserError> for ParserError {
 impl From<(&str, ErrorKind)> for ParserError {
     fn from(err: (&str, ErrorKind)) -> ParserError {
         ParserError::Nom(err.0.to_string(), err.1)
+    }
+}
+
+pub struct Parser {}
+
+impl Parser {
+    pub fn parse(text: &str) -> Result<Config, ParserError> {
+        let content_parser = tuple((
+            many0(preceded(multispace0, let_statement)),
+            many0(preceded(multispace0, const_statement)),
+            many0(preceded(multispace0, do_statement)),
+        ));
+
+        match all_consuming(content_parser)(text) {
+            Ok((_, (initial_state, _constants, event_processors))) => {
+                let mut initial_state_map = BTreeMap::new();
+
+                for (i, state) in initial_state.iter().enumerate() {
+                    initial_state_map.insert(i as u32, state.1.clone().try_into()?);
+                }
+
+                Ok(Config {
+                    initial_state: initial_state_map,
+                    event_processors,
+                })
+            }
+            Err(Err::Error(err)) => Err(err),
+            Err(Err::Failure(err)) => Err(err),
+            Err(Err::Incomplete(_)) => Err(ParserError::Nom(text.to_string(), ErrorKind::Eof)),
+        }
     }
 }
 
