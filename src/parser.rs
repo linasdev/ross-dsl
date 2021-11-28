@@ -6,8 +6,7 @@ use nom::{AsChar, Err, IResult};
 pub enum ParserError {
     ExpectedKeywordFound(String, String, String),
     ExpectedSymbolFound(String, String, String),
-    ExpectedValueFound(String, String),
-    ExpectedTypeFound(String, String),
+    ExpectedLiteralFound(String, String),
 
     ExpectedAlphaFound(String, String),
     ExpectedAlphanumericFound(String, String),
