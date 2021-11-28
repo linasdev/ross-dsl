@@ -1,14 +1,12 @@
 use nom::branch::alt;
-use nom::character::complete::alphanumeric0;
 use nom::combinator::success;
-use nom::error::ErrorKind;
 use nom::sequence::{separated_pair, tuple};
-use nom::{AsChar, Err, IResult, InputTakeAtPosition};
+use nom::{Err, IResult};
 use parse_int::parse;
 
-use crate::parser::ParserError;
+use crate::keyword::{false_keyword, true_keyword};
+use crate::parser::{alphanumeric1, dec1, hex1, ParserError};
 use crate::symbol::tilde;
-use crate::keyword::{true_keyword, false_keyword};
 
 #[derive(Debug, PartialEq)]
 pub enum Literal {
@@ -19,15 +17,12 @@ pub enum Literal {
 }
 
 pub fn parse_literal(text: &str) -> IResult<&str, Literal, ParserError> {
-    let alphanumeric_parser = separated_pair::<_, _, _, _, ParserError, _, _, _>(
-        alphanumeric_or_dash1,
-        tilde,
-        alphanumeric0,
-    );
+    let decimal_parser = separated_pair(dec1, tilde, alphanumeric1);
+    let hex_parser = separated_pair(hex1, tilde, alphanumeric1);
     let boolean_parser = tuple((alt((false_keyword, true_keyword)), success("bool")));
 
-    match alt((boolean_parser, alphanumeric_parser))(text)? {
-        (input, (value, "u8")) => {
+    match alt((boolean_parser, hex_parser, decimal_parser))(text) {
+        Ok((input, (value, "u8"))) => {
             if let Ok(value) = parse(value) {
                 Ok((input, Literal::U8(value)))
             } else {
@@ -37,7 +32,7 @@ pub fn parse_literal(text: &str) -> IResult<&str, Literal, ParserError> {
                 )))
             }
         }
-        (input, (value, "u16")) => {
+        Ok((input, (value, "u16"))) => {
             if let Ok(value) = parse(value) {
                 Ok((input, Literal::U16(value)))
             } else {
@@ -47,7 +42,7 @@ pub fn parse_literal(text: &str) -> IResult<&str, Literal, ParserError> {
                 )))
             }
         }
-        (input, (value, "u32")) => {
+        Ok((input, (value, "u32"))) => {
             if let Ok(value) = parse::<u32>(value) {
                 Ok((input, Literal::U32(value)))
             } else {
@@ -57,7 +52,7 @@ pub fn parse_literal(text: &str) -> IResult<&str, Literal, ParserError> {
                 )))
             }
         }
-        (input, (value, "bool")) => match value {
+        Ok((input, (value, "bool"))) => match value {
             "true" => Ok((input, Literal::Bool(true))),
             "false" => Ok((input, Literal::Bool(false))),
             _ => Err(Err::Error(ParserError::ExpectedValueFound(
@@ -65,18 +60,18 @@ pub fn parse_literal(text: &str) -> IResult<&str, Literal, ParserError> {
                 value.to_string(),
             ))),
         },
-        (_, (_, literal_type)) => Err(Err::Error(ParserError::ExpectedTypeFound(
+        Ok((_, (_, literal_type))) => Err(Err::Error(ParserError::ExpectedTypeFound(
             text.to_string(),
             literal_type.to_string(),
         ))),
+        Err(Err::Error(ParserError::ExpectedNumberFound(input, value))) => {
+            Err(Err::Error(ParserError::ExpectedValueFound(input, value)))
+        },
+        Err(Err::Error(ParserError::ExpectedSymbolFound(input, _, value))) => {
+            Err(Err::Error(ParserError::ExpectedValueFound(input, value)))
+        },
+        Err(err) => Err(Err::convert(err)),
     }
-}
-
-fn alphanumeric_or_dash1(input: &str) -> IResult<&str, &str, ParserError> {
-    input.split_at_position1_complete(
-        |item| !item.is_alphanum() && item != '-',
-        ErrorKind::AlphaNumeric,
-    )
 }
 
 #[cfg(test)]
@@ -217,10 +212,9 @@ mod tests {
     fn bool_invalid_value_test() {
         assert_eq!(
             parse_literal("falsy;input"),
-            Err(Err::Error(ParserError::ExpectedSymbolFound(
-                ";input".to_string(),
-                "~".to_string(),
-                ";".to_string(),
+            Err(Err::Error(ParserError::ExpectedValueFound(
+                "falsy;input".to_string(),
+                "falsy;input".to_string(),
             ))),
         )
     }
@@ -229,10 +223,9 @@ mod tests {
     fn no_tilde_test() {
         assert_eq!(
             parse_literal("0xab;input"),
-            Err(Err::Error(ParserError::ExpectedSymbolFound(
-                ";input".to_string(),
-                "~".to_string(),
-                ";".to_string(),
+            Err(Err::Error(ParserError::ExpectedValueFound(
+                "xab;input".to_string(),
+                "xab;input".to_string(),
             ))),
         );
     }
@@ -241,9 +234,9 @@ mod tests {
     fn double_tilde_test() {
         assert_eq!(
             parse_literal("0xab~~u8;input"),
-            Err(Err::Error(ParserError::ExpectedTypeFound(
-                "0xab~~u8;input".to_string(),
-                "".to_string()
+            Err(Err::Error(ParserError::ExpectedValueFound(
+                "xab~~u8;input".to_string(),
+                "xab~~u8;input".to_string()
             )))
         );
     }

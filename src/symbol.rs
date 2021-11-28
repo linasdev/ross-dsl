@@ -1,5 +1,6 @@
 use nom::character::complete::char;
 use nom::{Err, IResult};
+use nom::error::ErrorKind;
 
 use crate::parser::ParserError;
 
@@ -8,15 +9,13 @@ macro_rules! implement_symbol_parser {
         pub fn $symbol_name(text: &str) -> IResult<&str, char, ParserError> {
             match char($symbol)(text) {
                 Ok((input, _)) => Ok((input, $symbol)),
-                Err(Err::Error((value, _))) => Err(Err::Error(ParserError::ExpectedSymbolFound(
-                    text.to_string(),
-                    $symbol.to_string(),
-                    if let Some(value) = value.chars().nth(0) {
-                        value.to_string()
-                    } else {
-                        "".to_string()
-                    },
-                ))),
+                Err(Err::Error(ParserError::Nom(input, kind))) if matches!(kind, ErrorKind::Char) => {
+                    Err(Err::Error(ParserError::ExpectedSymbolFound(
+                        text.to_string(),
+                        $symbol.to_string(),
+                        input.to_string(),
+                    )))
+                },
                 Err(err) => Err(Err::convert(err)),
             }
         }
@@ -43,7 +42,7 @@ macro_rules! implement_symbol_parser {
                         Err(Err::Error(ParserError::ExpectedSymbolFound(
                             "while123123".to_string(),
                             $symbol.to_string(),
-                            "w".to_string()
+                            "while123123".to_string()
                         )))
                     );
                 }
@@ -76,3 +75,4 @@ implement_symbol_parser!(close_parenthesis, ')');
 implement_symbol_parser!(open_brace, '{');
 implement_symbol_parser!(close_brace, '}');
 implement_symbol_parser!(equal_sign, '=');
+implement_symbol_parser!(space, ' ');

@@ -33,21 +33,14 @@ impl From<(&str, ErrorKind)> for ParserError {
 }
 
 pub fn alpha1(text: &str) -> IResult<&str, &str, ParserError> {
-    match text.split_at_position1_complete::<_, ParserError>(
-        |item| !item.is_alpha(),
-        ErrorKind::Alpha,
-    ) {
+    match text
+        .split_at_position1_complete::<_, ParserError>(|item| !item.is_alpha(), ErrorKind::Alpha)
+    {
         Ok((input, value)) => Ok((input, value)),
-        Err(Err::Error(ParserError::Nom(input, kind)))
-            if matches!(kind, ErrorKind::Alpha) =>
-        {
+        Err(Err::Error(ParserError::Nom(input, kind))) if matches!(kind, ErrorKind::Alpha) => {
             Err(Err::Error(ParserError::ExpectedAlphaFound(
                 text.to_string(),
-                if let Some(value) = input.chars().nth(0) {
-                    value.to_string()
-                } else {
-                    "".to_string()
-                },
+                input.to_string(),
             )))
         }
         Err(err) => Err(Err::convert(err)),
@@ -65,11 +58,7 @@ pub fn alphanumeric1(text: &str) -> IResult<&str, &str, ParserError> {
         {
             Err(Err::Error(ParserError::ExpectedAlphanumericFound(
                 text.to_string(),
-                if let Some(value) = input.chars().nth(0) {
-                    value.to_string()
-                } else {
-                    "".to_string()
-                },
+                input.to_string(),
             )))
         }
         Err(err) => Err(Err::convert(err)),
@@ -85,11 +74,7 @@ pub fn hex1(text: &str) -> IResult<&str, &str, ParserError> {
         Err(Err::Error(ParserError::Nom(input, kind))) if matches!(kind, ErrorKind::HexDigit) => {
             Err(Err::Error(ParserError::ExpectedNumberFound(
                 text.to_string(),
-                if let Some(value) = input.chars().nth(0) {
-                    value.to_string()
-                } else {
-                    "".to_string()
-                },
+                input.to_string(),
             )))
         }
         Err(err) => Err(Err::convert(err)),
@@ -105,11 +90,7 @@ pub fn dec1(text: &str) -> IResult<&str, &str, ParserError> {
         Err(Err::Error(ParserError::Nom(input, kind))) if matches!(kind, ErrorKind::Digit) => {
             Err(Err::Error(ParserError::ExpectedNumberFound(
                 text.to_string(),
-                if let Some(value) = input.chars().nth(0) {
-                    value.to_string()
-                } else {
-                    "".to_string()
-                },
+                input.to_string(),
             )))
         }
         Err(err) => Err(Err::convert(err)),
@@ -131,7 +112,7 @@ mod tests {
             alpha1("123123"),
             Err(Err::Error(ParserError::ExpectedAlphaFound(
                 "123123".to_string(),
-                "1".to_string()
+                "123123".to_string()
             )))
         );
     }
@@ -149,7 +130,10 @@ mod tests {
 
     #[test]
     fn alphanumeric1_test() {
-        assert_eq!(alphanumeric1("while123123;input"), Ok((";input", "while123123")));
+        assert_eq!(
+            alphanumeric1("while123123;input"),
+            Ok((";input", "while123123"))
+        );
     }
 
     #[test]
@@ -158,7 +142,7 @@ mod tests {
             alphanumeric1(";123123"),
             Err(Err::Error(ParserError::ExpectedAlphanumericFound(
                 ";123123".to_string(),
-                ";".to_string()
+                ";123123".to_string()
             )))
         );
     }
@@ -185,7 +169,7 @@ mod tests {
             hex1("ghjklp"),
             Err(Err::Error(ParserError::ExpectedNumberFound(
                 "ghjklp".to_string(),
-                "g".to_string()
+                "ghjklp".to_string()
             )))
         );
     }
@@ -217,7 +201,7 @@ mod tests {
             dec1("abcabc"),
             Err(Err::Error(ParserError::ExpectedNumberFound(
                 "abcabc".to_string(),
-                "a".to_string()
+                "abcabc".to_string()
             )))
         );
     }
