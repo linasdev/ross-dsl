@@ -1,5 +1,4 @@
 use nom::character::complete::char;
-use nom::combinator::cut;
 use nom::{Err, IResult};
 
 use crate::parser::ParserError;
@@ -7,9 +6,9 @@ use crate::parser::ParserError;
 macro_rules! implement_symbol_parser {
     ($symbol_name:ident, $symbol:expr) => {
         pub fn $symbol_name(text: &str) -> IResult<&str, char, ParserError> {
-            match cut(char($symbol))(text) {
+            match char($symbol)(text) {
                 Ok((input, _)) => Ok((input, $symbol)),
-                Err(Err::Failure((value, _))) => Err(Err::Failure(ParserError::ExpectedSymbolFound(
+                Err(Err::Error((value, _))) => Err(Err::Error(ParserError::ExpectedSymbolFound(
                     text.to_string(),
                     $symbol.to_string(),
                     if let Some(value) = value.chars().nth(0) {
@@ -38,7 +37,7 @@ macro_rules! implement_symbol_parser {
                 fn $symbol_name() {
                     assert_eq!(
                         super::super::$symbol_name("while123123"),
-                        Err(Err::Failure(ParserError::ExpectedSymbolFound(
+                        Err(Err::Error(ParserError::ExpectedSymbolFound(
                             "while123123".to_string(),
                             $symbol.to_string(),
                             "w".to_string()
@@ -54,7 +53,7 @@ macro_rules! implement_symbol_parser {
                 fn $symbol_name() {
                     assert_eq!(
                         super::super::$symbol_name(""),
-                        Err(Err::Failure(ParserError::ExpectedSymbolFound(
+                        Err(Err::Error(ParserError::ExpectedSymbolFound(
                             "".to_string(),
                             $symbol.to_string(),
                             "".to_string()

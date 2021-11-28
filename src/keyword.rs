@@ -8,7 +8,7 @@ macro_rules! implement_keyword_parser {
         pub fn $parser_name(text: &str) -> IResult<&str, &str, ParserError> {
             match alpha0(text)? {
                 (input, $keyword) => Ok((input, $keyword)),
-                (_, value) => Err(Err::Failure(ParserError::ExpectedKeywordFound(
+                (_, value) => Err(Err::Error(ParserError::ExpectedKeywordFound(
                     text.to_string(),
                     $keyword.to_string(),
                     value.to_string(),
@@ -32,7 +32,7 @@ macro_rules! implement_keyword_parser {
                 fn $parser_name() {
                     assert_eq!(
                         super::super::$parser_name("while123123"),
-                        Err(Err::Failure(ParserError::ExpectedKeywordFound(
+                        Err(Err::Error(ParserError::ExpectedKeywordFound(
                             "while123123".to_string(),
                             $keyword.to_string(),
                             "while".to_string()
@@ -48,7 +48,7 @@ macro_rules! implement_keyword_parser {
                 fn $parser_name() {
                     assert_eq!(
                         super::super::$parser_name("123123"),
-                        Err(Err::Failure(ParserError::ExpectedKeywordFound(
+                        Err(Err::Error(ParserError::ExpectedKeywordFound(
                             "123123".to_string(),
                             $keyword.to_string(),
                             "".to_string()
@@ -64,7 +64,7 @@ macro_rules! implement_keyword_parser {
                 fn $parser_name() {
                     assert_eq!(
                         super::super::$parser_name(""),
-                        Err(Err::Failure(ParserError::ExpectedKeywordFound(
+                        Err(Err::Error(ParserError::ExpectedKeywordFound(
                             "".to_string(),
                             $keyword.to_string(),
                             "".to_string()
@@ -88,3 +88,5 @@ implement_keyword_parser!(event_keyword, "event");
 implement_keyword_parser!(producer_keyword, "producer");
 implement_keyword_parser!(tick_keyword, "tick");
 implement_keyword_parser!(fire_keyword, "fire");
+implement_keyword_parser!(true_keyword, "true");
+implement_keyword_parser!(false_keyword, "false");

@@ -1,13 +1,14 @@
 use nom::branch::alt;
-use nom::bytes::complete::tag;
 use nom::character::complete::alphanumeric0;
-use nom::combinator::{cut, success};
+use nom::combinator::success;
 use nom::error::ErrorKind;
 use nom::sequence::{separated_pair, tuple};
 use nom::{AsChar, Err, IResult, InputTakeAtPosition};
 use parse_int::parse;
 
 use crate::parser::ParserError;
+use crate::symbol::tilde;
+use crate::keyword::{true_keyword, false_keyword};
 
 #[derive(Debug, PartialEq)]
 pub enum Literal {
@@ -18,20 +19,20 @@ pub enum Literal {
 }
 
 pub fn parse_literal(text: &str) -> IResult<&str, Literal, ParserError> {
-    let mut alphanumeric_parser = cut(separated_pair::<_, _, _, _, ParserError, _, _, _>(
+    let alphanumeric_parser = separated_pair::<_, _, _, _, ParserError, _, _, _>(
         alphanumeric_or_dash1,
-        tag("~"),
+        tilde,
         alphanumeric0,
-    ));
-    let mut boolean_parser = cut(tuple((alt((tag("true"), tag("false"))), success("bool"))));
+    );
+    let boolean_parser = tuple((alt((false_keyword, true_keyword)), success("bool")));
 
-    match alphanumeric_parser(text).or(boolean_parser(text))? {
+    match alt((boolean_parser, alphanumeric_parser))(text)? {
         (input, (value, "u8")) => {
             eprintln!("{} {}", input, value);
             if let Ok(value) = parse(value) {
                 Ok((input, Literal::U8(value)))
             } else {
-                Err(Err::Failure(ParserError::ExpectedValueFound(
+                Err(Err::Error(ParserError::ExpectedValueFound(
                     text.to_string(),
                     value.to_string(),
                 )))
@@ -41,7 +42,7 @@ pub fn parse_literal(text: &str) -> IResult<&str, Literal, ParserError> {
             if let Ok(value) = parse(value) {
                 Ok((input, Literal::U16(value)))
             } else {
-                Err(Err::Failure(ParserError::ExpectedValueFound(
+                Err(Err::Error(ParserError::ExpectedValueFound(
                     text.to_string(),
                     value.to_string(),
                 )))
@@ -51,7 +52,7 @@ pub fn parse_literal(text: &str) -> IResult<&str, Literal, ParserError> {
             if let Ok(value) = parse::<u32>(value) {
                 Ok((input, Literal::U32(value)))
             } else {
-                Err(Err::Failure(ParserError::ExpectedValueFound(
+                Err(Err::Error(ParserError::ExpectedValueFound(
                     text.to_string(),
                     value.to_string(),
                 )))
@@ -60,12 +61,12 @@ pub fn parse_literal(text: &str) -> IResult<&str, Literal, ParserError> {
         (input, (value, "bool")) => match value {
             "true" => Ok((input, Literal::Bool(true))),
             "false" => Ok((input, Literal::Bool(false))),
-            _ => Err(Err::Failure(ParserError::ExpectedValueFound(
+            _ => Err(Err::Error(ParserError::ExpectedValueFound(
                 text.to_string(),
                 value.to_string(),
             ))),
         },
-        (_, (_, literal_type)) => Err(Err::Failure(ParserError::ExpectedTypeFound(
+        (_, (_, literal_type)) => Err(Err::Error(ParserError::ExpectedTypeFound(
             text.to_string(),
             literal_type.to_string(),
         ))),
@@ -95,7 +96,7 @@ mod tests {
     fn hex_u8_invalid_value_test() {
         assert_eq!(
             parse_literal("0xabab~u8;input"),
-            Err(Err::Failure(ParserError::ExpectedValueFound(
+            Err(Err::Error(ParserError::ExpectedValueFound(
                 "0xabab~u8;input".to_string(),
                 "0xabab".to_string()
             )))
@@ -114,7 +115,7 @@ mod tests {
     fn hex_u16_invalid_value_test() {
         assert_eq!(
             parse_literal("0xababab~u16;input"),
-            Err(Err::Failure(ParserError::ExpectedValueFound(
+            Err(Err::Error(ParserError::ExpectedValueFound(
                 "0xababab~u16;input".to_string(),
                 "0xababab".to_string()
             )))
@@ -133,7 +134,7 @@ mod tests {
     fn hex_u32_invalid_value_test() {
         assert_eq!(
             parse_literal("0xababababab~u32;input"),
-            Err(Err::Failure(ParserError::ExpectedValueFound(
+            Err(Err::Error(ParserError::ExpectedValueFound(
                 "0xababababab~u32;input".to_string(),
                 "0xababababab".to_string()
             )))
@@ -152,7 +153,7 @@ mod tests {
     fn decimal_u8_negative_test() {
         assert_eq!(
             parse_literal("-123~u8;input"),
-            Err(Err::Failure(ParserError::ExpectedValueFound(
+            Err(Err::Error(ParserError::ExpectedValueFound(
                 "-123~u8;input".to_string(),
                 "-123".to_string()
             )))
@@ -171,7 +172,7 @@ mod tests {
     fn decimal_u16_negative_test() {
         assert_eq!(
             parse_literal("-123~u16;input"),
-            Err(Err::Failure(ParserError::ExpectedValueFound(
+            Err(Err::Error(ParserError::ExpectedValueFound(
                 "-123~u16;input".to_string(),
                 "-123".to_string()
             )))
@@ -190,7 +191,7 @@ mod tests {
     fn decimal_u32_negative_test() {
         assert_eq!(
             parse_literal("-123~u32;input"),
-            Err(Err::Failure(ParserError::ExpectedValueFound(
+            Err(Err::Error(ParserError::ExpectedValueFound(
                 "-123~u32;input".to_string(),
                 "-123".to_string()
             )))
@@ -206,14 +207,6 @@ mod tests {
     }
 
     #[test]
-    fn explicit_bool_true_test() {
-        assert_eq!(
-            parse_literal("true~bool;input"),
-            Ok((";input", Literal::Bool(true)))
-        );
-    }
-
-    #[test]
     fn bool_false_test() {
         assert_eq!(
             parse_literal("false;input"),
@@ -222,42 +215,25 @@ mod tests {
     }
 
     #[test]
-    fn explicit_bool_false_test() {
-        assert_eq!(
-            parse_literal("false~bool;input"),
-            Ok((";input", Literal::Bool(false)))
-        );
-    }
-
-    #[test]
     fn bool_invalid_value_test() {
         assert_eq!(
             parse_literal("falsy;input"),
-            Err(Err::Failure(ParserError::Nom(
-                "falsy;input".to_string(),
-                ErrorKind::Tag
+            Err(Err::Error(ParserError::ExpectedSymbolFound(
+                ";input".to_string(),
+                "~".to_string(),
+                ";".to_string(),
             ))),
-        );
-    }
-
-    #[test]
-    fn explicit_bool_invalid_value_test() {
-        assert_eq!(
-            parse_literal("falsy~bool;input"),
-            Err(Err::Failure(ParserError::ExpectedValueFound(
-                "falsy~bool;input".to_string(),
-                "falsy".to_string()
-            )))
-        );
+        )
     }
 
     #[test]
     fn no_tilde_test() {
         assert_eq!(
             parse_literal("0xab;input"),
-            Err(Err::Failure(ParserError::Nom(
-                "0xab;input".to_string(),
-                ErrorKind::Tag
+            Err(Err::Error(ParserError::ExpectedSymbolFound(
+                ";input".to_string(),
+                "~".to_string(),
+                ";".to_string(),
             ))),
         );
     }
@@ -266,7 +242,7 @@ mod tests {
     fn double_tilde_test() {
         assert_eq!(
             parse_literal("0xab~~u8;input"),
-            Err(Err::Failure(ParserError::ExpectedTypeFound(
+            Err(Err::Error(ParserError::ExpectedTypeFound(
                 "0xab~~u8;input".to_string(),
                 "".to_string()
             )))
@@ -277,7 +253,7 @@ mod tests {
     fn invalid_type_test() {
         assert_eq!(
             parse_literal("0xab~u15;input"),
-            Err(Err::Failure(ParserError::ExpectedTypeFound(
+            Err(Err::Error(ParserError::ExpectedTypeFound(
                 "0xab~u15;input".to_string(),
                 "u15".to_string()
             )))
