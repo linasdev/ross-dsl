@@ -51,7 +51,7 @@ mod tests {
                 #[test]
                 fn extractor_test() {
                     let (input, extractor) =
-                    extractor(concat!(stringify!($extractor_type), "( );input")).unwrap();
+                        extractor(concat!(stringify!($extractor_type), "( );input")).unwrap();
 
                     assert_eq!(input, "input");
                     assert_eq!(
@@ -63,8 +63,7 @@ mod tests {
                 #[test]
                 fn missing_semicolon_test() {
                     assert_eq!(
-                        extractor(concat!(stringify!($extractor_type), "( )input"))
-                            .unwrap_err(),
+                        extractor(concat!(stringify!($extractor_type), "( )input")).unwrap_err(),
                         Err::Error(ParserError::ExpectedSymbolFound(
                             "input".to_string(),
                             ";".to_string(),

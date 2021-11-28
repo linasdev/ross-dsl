@@ -206,8 +206,7 @@ mod tests {
 
                 fn too_few_arguments_test() {
                     assert_eq!(
-                        filter(concat!(stringify!($filter_type), "( false );input"))
-                            .unwrap_err(),
+                        filter(concat!(stringify!($filter_type), "( false );input")).unwrap_err(),
                         Err::Error(ParserError::ExpectedArgumentsButGot(
                             "input".to_string(),
                             2,
