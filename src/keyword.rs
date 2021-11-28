@@ -4,8 +4,8 @@ use nom::{Err, IResult};
 use crate::parser::ParserError;
 use crate::token::KeywordToken;
 
-pub fn parse_keyword(input: &str) -> IResult<&str, KeywordToken, ParserError> {
-    match alpha0(input)? {
+pub fn parse_keyword(text: &str) -> IResult<&str, KeywordToken, ParserError> {
+    match alpha0(text)? {
         (input, "let") => Ok((input, KeywordToken::Let)),
         (input, "const") => Ok((input, KeywordToken::Const)),
         (input, "send") => Ok((input, KeywordToken::Send)),
@@ -18,8 +18,8 @@ pub fn parse_keyword(input: &str) -> IResult<&str, KeywordToken, ParserError> {
         (input, "producer") => Ok((input, KeywordToken::Producer)),
         (input, "tick") => Ok((input, KeywordToken::Tick)),
         (input, "fire") => Ok((input, KeywordToken::Fire)),
-        (input, token) => Err(Err::Failure(ParserError::ExpectedKeywordFound(
-            token.to_string() + input,
+        (_, token) => Err(Err::Failure(ParserError::ExpectedKeywordFound(
+            text.to_string(),
             token.to_string(),
         ))),
     }
