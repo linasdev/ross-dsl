@@ -1,18 +1,25 @@
-use nom::character::complete::alpha0;
 use nom::{Err, IResult};
 
-use crate::parser::ParserError;
+use crate::parser::{ParserError, alpha1};
 
 macro_rules! implement_keyword_parser {
     ($parser_name:ident, $keyword:expr) => {
         pub fn $parser_name(text: &str) -> IResult<&str, &str, ParserError> {
-            match alpha0(text)? {
-                (input, $keyword) => Ok((input, $keyword)),
-                (_, value) => Err(Err::Error(ParserError::ExpectedKeywordFound(
+            match alpha1(text) {
+                Ok((input, $keyword)) => Ok((input, $keyword)),
+                Ok((_, value)) => Err(Err::Error(ParserError::ExpectedKeywordFound(
                     text.to_string(),
                     $keyword.to_string(),
                     value.to_string(),
                 ))),
+                Err(Err::Error(ParserError::ExpectedAlphaFound(input, value))) => Err(
+                    Err::Error(ParserError::ExpectedKeywordFound(
+                        input,
+                        $keyword.to_string(),
+                        value
+                    ))
+                ),
+                Err(err) => Err(Err::convert(err)),
             }
         }
 
@@ -54,7 +61,7 @@ macro_rules! implement_keyword_parser {
                         Err(Err::Error(ParserError::ExpectedKeywordFound(
                             "123123".to_string(),
                             $keyword.to_string(),
-                            "".to_string()
+                            "123123".to_string()
                         )))
                     );
                 }
