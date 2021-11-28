@@ -44,7 +44,7 @@ mod tests {
 
     #[test]
     fn provided_extractor_test() {
-        let (input, matcher) = fire_statement(
+        let (input, creator) = fire_statement(
             "fire {
                 PacketExtractor();
                 PacketProducer(0xabab~u16);
@@ -54,11 +54,11 @@ mod tests {
 
         assert_eq!(input, "input");
         assert_eq!(
-            format!("{:?}", matcher.extractor),
+            format!("{:?}", creator.extractor),
             format!("{:?}", PacketExtractor::new())
         );
         assert_eq!(
-            format!("{:?}", matcher.producer),
+            format!("{:?}", creator.producer),
             format!("{:?}", PacketProducer::new(0xabab))
         );
     }
