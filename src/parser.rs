@@ -3,6 +3,8 @@ use nom::error::{ErrorKind, ParseError};
 #[derive(Debug, PartialEq)]
 pub enum ParserError {
     ExpectedKeywordFound(String, String),
+    ExpectedValueFound(String, String),
+    ExpectedTypeFound(String, String),
     Nom(String, ErrorKind),
 }
 
