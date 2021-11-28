@@ -22,7 +22,7 @@ macro_rules! impl_extractor_arg0 {
     };
 }
 
-pub fn parse_extractor(text: &str) -> IResult<&str, Box<dyn Extractor>, ParserError> {
+pub fn extractor(text: &str) -> IResult<&str, Box<dyn Extractor>, ParserError> {
     let (input, (name, arguments)) = terminated(pair(alpha1, argument0), semicolon)(text)?;
 
     impl_extractor_arg0!(input, name, arguments, NoneExtractor);
@@ -51,7 +51,7 @@ mod tests {
                 #[test]
                 fn extractor_test() {
                     let (input, extractor) =
-                        parse_extractor(concat!(stringify!($extractor_type), "( );input")).unwrap();
+                    extractor(concat!(stringify!($extractor_type), "( );input")).unwrap();
 
                     assert_eq!(input, "input");
                     assert_eq!(
@@ -63,7 +63,7 @@ mod tests {
                 #[test]
                 fn missing_semicolon_test() {
                     assert_eq!(
-                        parse_extractor(concat!(stringify!($extractor_type), "( )input"))
+                        extractor(concat!(stringify!($extractor_type), "( )input"))
                             .unwrap_err(),
                         Err::Error(ParserError::ExpectedSymbolFound(
                             "input".to_string(),
@@ -77,7 +77,7 @@ mod tests {
 
                 fn too_many_arguments_test() {
                     assert_eq!(
-                        parse_extractor(concat!(stringify!($extractor_type), "( false );input"))
+                        extractor(concat!(stringify!($extractor_type), "( false );input"))
                             .unwrap_err(),
                         Err::Error(ParserError::ExpectedArgumentsButGot(
                             "input".to_string(),

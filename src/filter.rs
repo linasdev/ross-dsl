@@ -59,7 +59,7 @@ macro_rules! impl_filter_arg2 {
     };
 }
 
-pub fn parse_filter(text: &str) -> IResult<&str, Box<dyn Filter>, ParserError> {
+pub fn filter(text: &str) -> IResult<&str, Box<dyn Filter>, ParserError> {
     let (input, (name, arguments)) = terminated(pair(alpha1, argument0), semicolon)(text)?;
 
     impl_filter_arg1!(input, name, arguments, ValueEqualToConstFilter);
@@ -92,7 +92,7 @@ mod tests {
 
                 #[test]
                 fn extractor_test() {
-                    let (input, extractor) = parse_filter(concat!(
+                    let (input, extractor) = filter(concat!(
                         stringify!($filter_type),
                         "( ",
                         $argument0,
@@ -110,7 +110,7 @@ mod tests {
                 #[test]
                 fn missing_semicolon_test() {
                     assert_eq!(
-                        parse_filter(concat!(
+                        filter(concat!(
                             stringify!($filter_type),
                             "( ",
                             $argument0,
@@ -129,7 +129,7 @@ mod tests {
 
                 fn too_few_arguments_test() {
                     assert_eq!(
-                        parse_filter(concat!(stringify!($filter_type), "( );input")).unwrap_err(),
+                        filter(concat!(stringify!($filter_type), "( );input")).unwrap_err(),
                         Err::Error(ParserError::ExpectedArgumentsButGot(
                             "input".to_string(),
                             1,
@@ -142,7 +142,7 @@ mod tests {
 
                 fn too_many_arguments_test() {
                     assert_eq!(
-                        parse_filter(concat!(stringify!($filter_type), "( false, false );input"))
+                        filter(concat!(stringify!($filter_type), "( false, false );input"))
                             .unwrap_err(),
                         Err::Error(ParserError::ExpectedArgumentsButGot(
                             "input".to_string(),
@@ -162,7 +162,7 @@ mod tests {
 
                 #[test]
                 fn extractor_test() {
-                    let (input, extractor) = parse_filter(concat!(
+                    let (input, extractor) = filter(concat!(
                         stringify!($filter_type),
                         "( ",
                         $argument0,
@@ -185,7 +185,7 @@ mod tests {
                 #[test]
                 fn missing_semicolon_test() {
                     assert_eq!(
-                        parse_filter(concat!(
+                        filter(concat!(
                             stringify!($filter_type),
                             "( ",
                             $argument0,
@@ -206,7 +206,7 @@ mod tests {
 
                 fn too_few_arguments_test() {
                     assert_eq!(
-                        parse_filter(concat!(stringify!($filter_type), "( false );input"))
+                        filter(concat!(stringify!($filter_type), "( false );input"))
                             .unwrap_err(),
                         Err::Error(ParserError::ExpectedArgumentsButGot(
                             "input".to_string(),
@@ -220,7 +220,7 @@ mod tests {
 
                 fn too_many_arguments_test() {
                     assert_eq!(
-                        parse_filter(concat!(
+                        filter(concat!(
                             stringify!($filter_type),
                             "( false, false, false );input"
                         ))
