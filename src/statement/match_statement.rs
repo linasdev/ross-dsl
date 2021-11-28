@@ -43,8 +43,8 @@ pub fn match_statement(text: &str) -> IResult<&str, Matcher, ParserError> {
     }
 
     let mut producer_match_parser = {
-        let content_parser = map_res(literal, |literal| {
-            let producer_address = literal.try_into()?;
+        let content_parser = map_res(literal, |producer_address| {
+            let producer_address = producer_address.try_into()?;
             let extractor = Box::new(EventProducerAddressExtractor::new()) as Box<dyn Extractor>;
             let filter = Box::new(ValueEqualToConstFilter::new(Value::U16(producer_address)))
                 as Box<dyn Filter>;
