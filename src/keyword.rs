@@ -1,5 +1,5 @@
 use nom::character::complete::alpha0;
-use nom::{Err, IResult,};
+use nom::{Err, IResult};
 
 use crate::parser::ParserError;
 use crate::token::KeywordToken;
@@ -35,98 +35,62 @@ mod tests {
 
     #[test]
     fn let_keyword_test() {
-        assert_eq!(
-            parse_keyword("let"),
-            Ok(("", KeywordToken::Let))
-        );
+        assert_eq!(parse_keyword("let"), Ok(("", KeywordToken::Let)));
     }
 
     #[test]
     fn const_keyword_test() {
-        assert_eq!(
-            parse_keyword("const"),
-            Ok(("", KeywordToken::Const))
-        );
+        assert_eq!(parse_keyword("const"), Ok(("", KeywordToken::Const)));
     }
 
     #[test]
     fn send_keyword_test() {
-        assert_eq!(
-            parse_keyword("send"),
-            Ok(("", KeywordToken::Send))
-        );
+        assert_eq!(parse_keyword("send"), Ok(("", KeywordToken::Send)));
     }
 
     #[test]
     fn from_keyword_test() {
-        assert_eq!(
-            parse_keyword("from"),
-            Ok(("", KeywordToken::From))
-        );
+        assert_eq!(parse_keyword("from"), Ok(("", KeywordToken::From)));
     }
 
     #[test]
     fn to_keyword_test() {
-        assert_eq!(
-            parse_keyword("to"),
-            Ok(("", KeywordToken::To))
-        );
+        assert_eq!(parse_keyword("to"), Ok(("", KeywordToken::To)));
     }
 
     #[test]
     fn if_test() {
-        assert_eq!(
-            parse_keyword("if"),
-            Ok(("", KeywordToken::If))
-        );
+        assert_eq!(parse_keyword("if"), Ok(("", KeywordToken::If)));
     }
 
     #[test]
     fn do_test() {
-        assert_eq!(
-            parse_keyword("do"),
-            Ok(("", KeywordToken::Do))
-        );
+        assert_eq!(parse_keyword("do"), Ok(("", KeywordToken::Do)));
     }
 
     #[test]
     fn match_test() {
-        assert_eq!(
-            parse_keyword("match"),
-            Ok(("", KeywordToken::Match))
-        );
+        assert_eq!(parse_keyword("match"), Ok(("", KeywordToken::Match)));
     }
 
     #[test]
     fn event_test() {
-        assert_eq!(
-            parse_keyword("event"),
-            Ok(("", KeywordToken::Event))
-        );
+        assert_eq!(parse_keyword("event"), Ok(("", KeywordToken::Event)));
     }
 
     #[test]
     fn producer_test() {
-        assert_eq!(
-            parse_keyword("producer"),
-            Ok(("", KeywordToken::Producer))
-        );
+        assert_eq!(parse_keyword("producer"), Ok(("", KeywordToken::Producer)));
     }
 
     #[test]
     fn tick_test() {
-        assert_eq!(
-            parse_keyword("tick"),
-            Ok(("", KeywordToken::Tick))
-        );
+        assert_eq!(parse_keyword("tick"), Ok(("", KeywordToken::Tick)));
     }
 
     #[test]
     fn fire_test() {
-        assert_eq!(
-            parse_keyword("fire"),
-            Ok(("", KeywordToken::Fire))
-        );
+        assert_eq!(parse_keyword("fire"), Ok(("", KeywordToken::Fire)));
     }
 
     #[test]
