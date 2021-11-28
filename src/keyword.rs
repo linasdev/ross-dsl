@@ -20,11 +20,7 @@ pub fn parse_keyword(input: &str) -> IResult<&str, KeywordToken, ParserError> {
         (input, "fire") => Ok((input, KeywordToken::Fire)),
         (input, token) => Err(Err::Failure(ParserError::ExpectedKeywordFound(
             token.to_string() + input,
-            if token.is_empty() {
-                input.to_string()
-            } else {
-                token.to_string()
-            },
+            token.to_string(),
         ))),
     }
 }
@@ -110,7 +106,7 @@ mod tests {
             parse_keyword("123123"),
             Err(Err::Failure(ParserError::ExpectedKeywordFound(
                 "123123".to_string(),
-                "123123".to_string()
+                "".to_string()
             )))
         );
     }
