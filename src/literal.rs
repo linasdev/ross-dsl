@@ -2,9 +2,9 @@ use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::character::complete::alphanumeric0;
 use nom::combinator::{cut, success};
-use nom::sequence::{separated_pair, tuple};
-use nom::{Err, IResult, AsChar, InputTakeAtPosition};
 use nom::error::ErrorKind;
+use nom::sequence::{separated_pair, tuple};
+use nom::{AsChar, Err, IResult, InputTakeAtPosition};
 use parse_int::parse;
 
 use crate::parser::ParserError;
@@ -73,7 +73,10 @@ pub fn parse_literal(text: &str) -> IResult<&str, Literal, ParserError> {
 }
 
 fn alphanumeric_or_dash1(input: &str) -> IResult<&str, &str, ParserError> {
-  input.split_at_position1_complete(|item| !item.is_alphanum() && item != '-', ErrorKind::AlphaNumeric)
+    input.split_at_position1_complete(
+        |item| !item.is_alphanum() && item != '-',
+        ErrorKind::AlphaNumeric,
+    )
 }
 
 #[cfg(test)]
