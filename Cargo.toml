@@ -10,7 +10,7 @@ readme = "README.md"
 
 [dependencies]
 parse_int = "0.5.0"
-ross-config = "2.1.0"
+ross-config = "2.2.0"
 ross-protocol = "1.25.0"
 nom = "7.1.0"
 
