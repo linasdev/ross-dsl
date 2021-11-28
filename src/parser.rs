@@ -13,6 +13,7 @@ use crate::literal::{literal, Literal};
 use crate::statement::const_statement::const_statement;
 use crate::statement::do_statement::do_statement;
 use crate::statement::let_statement::let_statement;
+use crate::statement::send_statement::send_statement;
 use crate::symbol::{close_parenthesis, comma, open_parenthesis};
 
 #[derive(Debug, PartialEq)]
@@ -64,23 +65,29 @@ pub struct Parser {}
 
 impl Parser {
     pub fn parse(text: &str) -> Result<Config, ParserError> {
-        let content_parser = tuple((
-            many0(preceded(multispace0, let_statement)),
-            many0(preceded(multispace0, const_statement)),
-            many0(preceded(multispace0, do_statement)),
-        ));
+        let content_parser = terminated(
+            tuple((
+                many0(preceded(multispace0, let_statement)),
+                many0(preceded(multispace0, const_statement)),
+                many0(preceded(multispace0, send_statement)),
+                many0(preceded(multispace0, do_statement)),
+            )),
+            multispace0,
+        );
 
         match all_consuming(content_parser)(text) {
-            Ok((_, (initial_state, _constants, event_processors))) => {
+            Ok((_, (initial_state, _constants, mut send_processors, mut do_processors))) => {
                 let mut initial_state_map = BTreeMap::new();
 
                 for (i, state) in initial_state.iter().enumerate() {
                     initial_state_map.insert(i as u32, state.1.clone().try_into()?);
                 }
 
+                send_processors.append(&mut do_processors);
+
                 Ok(Config {
                     initial_state: initial_state_map,
-                    event_processors,
+                    event_processors: send_processors,
                 })
             }
             Err(Err::Error(err)) => Err(err),
@@ -91,9 +98,10 @@ impl Parser {
 }
 
 pub fn alpha1(text: &str) -> IResult<&str, &str, ParserError> {
-    match text
-        .split_at_position1_complete::<_, ParserError>(|item| !item.is_alpha(), ErrorKind::Alpha)
-    {
+    match text.split_at_position1_complete::<_, ParserError>(
+        |item| !item.is_alpha() && item != '_',
+        ErrorKind::Alpha,
+    ) {
         Ok((input, value)) => Ok((input, value)),
         Err(Err::Error(ParserError::Nom(input, kind))) if matches!(kind, ErrorKind::Alpha) => {
             Err(Err::Error(ParserError::ExpectedAlphaFound(
@@ -199,6 +207,11 @@ mod tests {
                 "123123".to_string()
             )))
         );
+    }
+
+    #[test]
+    fn alpha1_underscore_test() {
+        assert_eq!(alpha1("while_true123123"), Ok(("123123", "while_true")));
     }
 
     #[test]
