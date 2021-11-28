@@ -47,11 +47,11 @@ macro_rules! implement_keyword_parser {
                 #[test]
                 fn $parser_name() {
                     assert_eq!(
-                        super::super::$parser_name("while123123"),
+                        super::super::$parser_name("123123"),
                         Err(Err::Failure(ParserError::ExpectedKeywordFound(
-                            "while123123".to_string(),
+                            "123123".to_string(),
                             $keyword.to_string(),
-                            "while".to_string()
+                            "".to_string()
                         )))
                     );
                 }
