@@ -38,8 +38,6 @@ impl Parser {
         while text.len() != 0 {
             let mut errors = vec![];
 
-            println!("start\n{:?}\n{:?}\n{:?}\nend\n\n", initial_state, constants, event_processors);
-
             match preceded(multispace0, let_statement)(text) {
                 Ok((input, (name, value))) => {
                     let initial_state_index = initial_state.len() as u32;
