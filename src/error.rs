@@ -146,8 +146,6 @@ impl<I: Display> Display for ParserError<I> {
     }
 }
 
-impl<I: Debug + Display> Error for ParserError<I> {}
-
 impl<I> ParseError<I> for ParserError<I> {
     fn from_error_kind(location: I, kind: NomErrorKind) -> Self {
         let kind = match kind {
@@ -196,6 +194,12 @@ impl<I> ParseError<I> for ParserError<I> {
         };
 
         ParserError::Alt(siblings)
+    }
+}
+
+impl<I> FromExternalError<I, ParserError<I>> for ParserError<I> {
+    fn from_external_error(_location: I, _kind: NomErrorKind, e: ParserError<I>) -> Self {
+        e
     }
 }
 

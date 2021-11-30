@@ -127,10 +127,10 @@ mod tests {
                     }
                 }",
             ),
-            Err(NomErr::Error(ParserError::Base {
+            Err(NomErr::Failure(ParserError::Base {
                 location: _,
-                kind: ErrorKind::Nom(NomErrorKind::Many1),
-                child: Some(_),
+                kind: ErrorKind::CastFromToNotAllowed("u32", "u16"),
+                child: None,
             }))
         );
     }
@@ -143,7 +143,7 @@ mod tests {
                     match event 0xabab~u16;
                     match producer 0x0123~u16;",
             ),
-            Err(NomErr::Error(ParserError::Base {
+            Err(NomErr::Failure(ParserError::Base {
                 location: _,
                 kind: ErrorKind::Nom(NomErrorKind::Many1),
                 child: Some(_),

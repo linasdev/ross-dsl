@@ -32,10 +32,10 @@ pub fn match_statement(text: &str) -> IResult<&str, Matcher, ParserError<&str>> 
                 Ok((extractor, filter))
             });
 
-        let event_keyword_parser = preceded(event_keyword, preceded(multispace1, content_parser));
+        let event_keyword_parser = preceded(event_keyword, cut(preceded(multispace1, content_parser)));
 
         let match_keyword_parser =
-            preceded(match_keyword, cut(preceded(multispace1, event_keyword_parser)));
+            preceded(match_keyword, preceded(multispace1, event_keyword_parser));
 
         terminated(match_keyword_parser, semicolon)
     };
@@ -54,11 +54,11 @@ pub fn match_statement(text: &str) -> IResult<&str, Matcher, ParserError<&str>> 
             });
 
         let producer_keyword_parser =
-            preceded(producer_keyword, preceded(multispace1, content_parser));
+            preceded(producer_keyword, cut(preceded(multispace1, content_parser)));
 
         let match_keyword_parser = preceded(
             match_keyword,
-            cut(preceded(multispace1, producer_keyword_parser)),
+            preceded(multispace1, producer_keyword_parser),
         );
 
         terminated(match_keyword_parser, semicolon)
@@ -70,8 +70,8 @@ pub fn match_statement(text: &str) -> IResult<&str, Matcher, ParserError<&str>> 
         }));
 
         let filter_parser = delimited(multispace0, filter, multispace0);
-        let content_parser = preceded(open_brace, pair(extractor_parser, filter_parser));
-        let keyword_parser = preceded(match_keyword, cut(preceded(multispace1, content_parser)));
+        let content_parser = preceded(open_brace, cut(pair(extractor_parser, filter_parser)));
+        let keyword_parser = preceded(match_keyword, preceded(multispace1, content_parser));
 
         terminated(keyword_parser, preceded(multispace0, close_brace))
     };
@@ -145,10 +145,10 @@ mod tests {
                     NoneExtractor();
                 }input",
             ),
-            Err(NomErr::Error(ParserError::Base {
+            Err(NomErr::Failure(ParserError::Base {
                 location: _,
-                kind: ErrorKind::Nom(NomErrorKind::Alt),
-                child: Some(_),
+                kind: ErrorKind::UnknownFilter,
+                child: None,
             }))
         );
     }
@@ -172,10 +172,10 @@ mod tests {
     fn event_invalid_literal_test() {
         assert_matches!(
             match_statement("match event 0xabababab~u32;input"),
-            Err(NomErr::Error(ParserError::Base {
+            Err(NomErr::Failure(ParserError::Base {
                 location: _,
-                kind: ErrorKind::Nom(NomErrorKind::Alt),
-                child: Some(_),
+                kind: ErrorKind::CastFromToNotAllowed("u32", "u16"),
+                child: None,
             }))
         );
     }
@@ -211,10 +211,10 @@ mod tests {
     fn producer_invalid_literal_test() {
         assert_matches!(
             match_statement("match producer 0xabababab~u32;input"),
-            Err(NomErr::Error(ParserError::Base {
+            Err(NomErr::Failure(ParserError::Base {
                 location: _,
-                kind: ErrorKind::Nom(NomErrorKind::Alt),
-                child: Some(_),
+                kind: ErrorKind::CastFromToNotAllowed("u32", "u16"),
+                child: None,
             }))
         );
     }

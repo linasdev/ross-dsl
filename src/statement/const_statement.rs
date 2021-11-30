@@ -31,6 +31,19 @@ pub fn const_statement(text: &str) -> IResult<&str, (&str, Literal), ParserError
                 child,
             })),
         })),
+        Err(NomErr::Failure(ParserError::Base {
+            location,
+            kind: ErrorKind::Expected(Expectation::Alpha),
+            child,
+        })) => Err(NomErr::Failure(ParserError::Base {
+            location,
+            kind: ErrorKind::Expected(Expectation::Name),
+            child: Some(Box::new(ParserError::Base {
+                location,
+                kind: ErrorKind::Expected(Expectation::Alpha),
+                child,
+            })),
+        })),
         err => err,
     }
 }
@@ -77,7 +90,7 @@ mod tests {
     fn only_keyword_test() {
         assert_matches!(
             const_statement("const;input"),
-            Err(NomErr::Error(ParserError::Base {
+            Err(NomErr::Failure(ParserError::Base {
                 location,
                 kind,
                 child,
@@ -93,7 +106,7 @@ mod tests {
     fn invalid_name_test() {
         assert_matches!(
             const_statement("const 1state = 0xabababab~u32;input"),
-            Err(NomErr::Error(ParserError::Base {
+            Err(NomErr::Failure(ParserError::Base {
                 location,
                 kind,
                 child,

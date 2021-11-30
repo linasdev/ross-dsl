@@ -92,7 +92,7 @@ mod tests {
                     PacketProducer(0xabababab~u32);
                 }",
             ),
-            Err(NomErr::Error(ParserError::Base {
+            Err(NomErr::Failure(ParserError::Base {
                 location: _,
                 kind: ErrorKind::CastFromToNotAllowed("u32", "u16"),
                 child: None,
