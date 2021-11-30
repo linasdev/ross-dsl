@@ -136,10 +136,40 @@ impl Parser {
 }
 
 pub fn name_parser(text: &str) -> IResult<&str, &str, ParserError<&str>> {
-    text.split_at_position1_complete(
+    if let Some(character) = text.chars().nth(0) {
+        if character.is_digit(10) || character == '_' {
+            return Err(NomErr::Error(ParserError::Base {
+                location: text,
+                kind: ErrorKind::Expected(Expectation::Name),
+                child: Some(Box::new(ParserError::Base {
+                    location: text,
+                    kind: ErrorKind::Expected(Expectation::Alpha),
+                    child: None,
+                })),
+            }));
+        }
+    }
+    
+    match text.split_at_position1_complete(
         |item| !item.is_alpha() && !item.is_digit(10) && item != '_',
         NomErrorKind::Alpha,
-    )
+    ) {
+        Ok((input, name)) => Ok((input, name)),
+        Err(NomErr::Error(ParserError::Base {
+            location,
+            kind: ErrorKind::Expected(Expectation::Alpha),
+            child,
+        })) => Err(NomErr::Error(ParserError::Base {
+            location,
+            kind: ErrorKind::Expected(Expectation::Name),
+            child: Some(Box::new(ParserError::Base {
+                location,
+                kind: ErrorKind::Expected(Expectation::Alpha),
+                child,
+            })),
+        })),
+        err => err,
+    }
 }
 
 pub fn hex1(text: &str) -> IResult<&str, &str, ParserError<&str>> {
@@ -181,19 +211,19 @@ mod tests {
 
     #[test]
     fn name_parser_test() {
-        assert_matches!(name_parser("while123123"), Ok(("123123", "while")));
+        assert_matches!(name_parser("while;input"), Ok((";input", "while")));
     }
 
     #[test]
     fn name_parser_underscore_test() {
         assert_matches!(
-            name_parser("while_true123123"),
-            Ok(("123123", "while_true"))
+            name_parser("while_true;input"),
+            Ok((";input", "while_true")),
         );
     }
 
     #[test]
-    fn name_parser_non_alpha_test() {
+    fn name_parser_first_character_digit_test() {
         assert_matches!(
             name_parser("123123"),
             Err(NomErr::Error(ParserError::Base {
@@ -202,9 +232,25 @@ mod tests {
                 child,
             })) => {
                 assert_matches!(location, "123123");
-                assert_matches!(kind, ErrorKind::Expected(Expectation::Alpha));
-                assert_matches!(child, None);
-            }
+                assert_matches!(kind, ErrorKind::Expected(Expectation::Name));
+                assert_matches!(child, Some(_));
+            },
+        );
+    }
+
+    #[test]
+    fn name_parser_first_character_underscore_test() {
+        assert_matches!(
+            name_parser("_while;input"),
+            Err(NomErr::Error(ParserError::Base {
+                location,
+                kind,
+                child,
+            })) => {
+                assert_matches!(location, "_while;input");
+                assert_matches!(kind, ErrorKind::Expected(Expectation::Name));
+                assert_matches!(child, Some(_));
+            },
         );
     }
 
@@ -218,8 +264,8 @@ mod tests {
                 child,
             })) => {
                 assert_matches!(location, "");
-                assert_matches!(kind, ErrorKind::Expected(Expectation::Alpha));
-                assert_matches!(child, None);
+                assert_matches!(kind, ErrorKind::Expected(Expectation::Name));
+                assert_matches!(child, Some(_));
             }
         );
     }

@@ -1,9 +1,9 @@
 use nom::character::complete::{multispace0, multispace1};
 use nom::combinator::cut;
 use nom::sequence::{delimited, preceded, separated_pair, terminated};
-use nom::{Err as NomErr, IResult};
+use nom::IResult;
 
-use crate::error::{ErrorKind, Expectation, ParserError};
+use crate::error::ParserError;
 use crate::keyword::let_keyword;
 use crate::literal::{literal, Literal};
 use crate::parser::name_parser;
@@ -16,36 +16,7 @@ pub fn let_statement(text: &str) -> IResult<&str, (&str, Literal), ParserError<&
     let keyword_parser = preceded(let_keyword, cut(name_value_pair_parser));
     let mut semicolon_parser = terminated(keyword_parser, semicolon);
 
-    match semicolon_parser(text) {
-        Ok((input, (name, value))) => Ok((input, (name, value))),
-        Err(NomErr::Error(ParserError::Base {
-            location,
-            kind: ErrorKind::Expected(Expectation::Alpha),
-            child,
-        })) => Err(NomErr::Error(ParserError::Base {
-            location,
-            kind: ErrorKind::Expected(Expectation::Name),
-            child: Some(Box::new(ParserError::Base {
-                location,
-                kind: ErrorKind::Expected(Expectation::Alpha),
-                child,
-            })),
-        })),
-        Err(NomErr::Failure(ParserError::Base {
-            location,
-            kind: ErrorKind::Expected(Expectation::Alpha),
-            child,
-        })) => Err(NomErr::Failure(ParserError::Base {
-            location,
-            kind: ErrorKind::Expected(Expectation::Name),
-            child: Some(Box::new(ParserError::Base {
-                location,
-                kind: ErrorKind::Expected(Expectation::Alpha),
-                child,
-            })),
-        })),
-        err => err,
-    }
+    semicolon_parser(text)
 }
 
 #[cfg(test)]
@@ -53,6 +24,9 @@ mod tests {
     use super::*;
 
     use cool_asserts::assert_matches;
+    use nom::Err as NomErr;
+
+    use crate::error::{ErrorKind, Expectation};
 
     #[test]
     fn hex_u32_test() {
