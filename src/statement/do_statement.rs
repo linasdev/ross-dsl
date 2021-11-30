@@ -1,6 +1,6 @@
 use nom::character::complete::multispace0;
 use nom::combinator::cut;
-use nom::multi::{many0, many1};
+use nom::multi::many0;
 use nom::sequence::{pair, preceded, terminated};
 use nom::IResult;
 use std::collections::BTreeMap;
@@ -22,7 +22,7 @@ pub fn do_statement<'a>(
             open_brace,
             pair(
                 many0(preceded(multispace0, match_statement(constants))),
-                many1(preceded(multispace0, fire_statement(constants))),
+                many0(preceded(multispace0, fire_statement(constants))),
             ),
         );
         let keyword_parser = preceded(do_keyword, cut(preceded(multispace0, content_parser)));
@@ -39,7 +39,6 @@ mod tests {
     use super::*;
 
     use cool_asserts::assert_matches;
-    use nom::error::ErrorKind as NomErrorKind;
     use nom::Err as NomErr;
 
     use ross_config::extractor::{
@@ -140,23 +139,6 @@ mod tests {
                 location: _,
                 kind: ErrorKind::CastFromToNotAllowed("u32", "u16"),
                 child: None,
-            }))
-        );
-    }
-
-    #[test]
-    fn no_fire_statement_test() {
-        let constants = BTreeMap::new();
-        assert_matches!(
-            do_statement(&constants)(
-                "do {
-                    match event 0xabab~u16;
-                    match producer 0x0123~u16;",
-            ),
-            Err(NomErr::Failure(ParserError::Base {
-                location: _,
-                kind: ErrorKind::Nom(NomErrorKind::Many1),
-                child: Some(_),
             }))
         );
     }
