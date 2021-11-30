@@ -14,7 +14,7 @@ use crate::keyword::{false_keyword, true_keyword};
 use crate::parser::{dec1, hex1};
 use crate::symbol::tilde;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub enum Literal {
     U8(u8),
     U16(u16),

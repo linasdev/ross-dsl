@@ -19,6 +19,7 @@ pub enum Expectation {
     Digit,
     HexDigit,
     MultiSpace,
+    Something,
 }
 
 impl Display for Expectation {
@@ -38,6 +39,7 @@ impl Display for Expectation {
             Expectation::Digit => write!(f, "an ascii digit"),
             Expectation::HexDigit => write!(f, "a hexadecimal digit"),
             Expectation::MultiSpace => write!(f, "a space, tab or newline"),
+            Expectation::Something => write!(f, "something"),
         }
     }
 }

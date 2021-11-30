@@ -1,16 +1,16 @@
 use nom::character::complete::multispace0;
-use nom::combinator::all_consuming;
 use nom::error::ErrorKind as NomErrorKind;
-use nom::multi::{many0, separated_list0};
-use nom::sequence::{delimited, preceded, terminated, tuple};
+use nom::multi::{separated_list0};
+use nom::Err as NomErr;
+use nom::sequence::{delimited, preceded, terminated};
 use nom::InputTakeAtPosition;
-use nom::{AsChar, Err as NomErr, IResult};
+use nom::{AsChar, IResult};
 use std::collections::BTreeMap;
 use std::convert::TryInto;
 
 use ross_config::config::Config;
 
-use crate::error::ParserError;
+use crate::error::{ErrorKind, Expectation, ParserError};
 use crate::literal::{literal, Literal};
 use crate::statement::const_statement::const_statement;
 use crate::statement::do_statement::do_statement;
@@ -21,36 +21,75 @@ use crate::symbol::{close_parenthesis, comma, open_parenthesis};
 pub struct Parser {}
 
 impl Parser {
-    pub fn parse(text: &str) -> Result<Config, ParserError<&str>> {
-        let content_parser = terminated(
-            tuple((
-                many0(preceded(multispace0, let_statement)),
-                many0(preceded(multispace0, const_statement)),
-                many0(preceded(multispace0, send_statement)),
-                many0(preceded(multispace0, do_statement)),
-            )),
-            multispace0,
-        );
+    pub fn parse(mut text: &str) -> Result<Config, ParserError<&str>> {
+        let mut initial_state = BTreeMap::new();
+        let mut constants = BTreeMap::new();
+        let mut event_processors = vec![];
 
-        match all_consuming(content_parser)(text) {
-            Ok((_, (initial_state, _constants, mut send_processors, mut do_processors))) => {
-                let mut initial_state_map = BTreeMap::new();
-
-                for (i, state) in initial_state.iter().enumerate() {
-                    initial_state_map.insert(i as u32, state.1.clone().try_into()?);
-                }
-
-                send_processors.append(&mut do_processors);
-
-                Ok(Config {
-                    initial_state: initial_state_map,
-                    event_processors: send_processors,
-                })
+        while text.len() != 0 {
+            let mut errors = vec![];
+            
+            match preceded(multispace0, let_statement)(text) {
+                Ok((input, (name, value))) => {
+                    let initial_state_index = initial_state.len() as u32;
+                    initial_state.insert(initial_state_index, value.try_into()?);
+                    constants.insert(name, Literal::U32(initial_state_index));
+                    text = input;
+    
+                    continue;
+                },
+                Err(NomErr::Error(err)) => errors.push(err),
+                Err(NomErr::Failure(err)) => return Err(err),
+                _ => {},
             }
-            Err(NomErr::Error(err)) => Err(err),
-            Err(NomErr::Failure(err)) => Err(err),
-            Err(NomErr::Incomplete(_)) => panic!("Unreachable code"),
+
+            match preceded(multispace0, const_statement)(text) {
+                Ok((input, (name, value))) => {
+                    constants.insert(name, value);
+                    text = input;
+
+                    continue;
+                },
+                Err(NomErr::Error(err)) => errors.push(err),
+                Err(NomErr::Failure(err)) => return Err(err),
+                _ => {},
+            }
+
+            match preceded(multispace0, send_statement)(text) {
+                Ok((input, event_processor)) => {
+                    event_processors.push(event_processor);
+                    text = input;
+
+                    continue;
+                },
+                Err(NomErr::Error(err)) => errors.push(err),
+                Err(NomErr::Failure(err)) => return Err(err),
+                _ => {},
+            }
+
+            match preceded(multispace0, do_statement)(text) {
+                Ok((input, event_processor)) => {
+                    event_processors.push(event_processor);
+                    text = input;
+
+                    continue;
+                },
+                Err(NomErr::Error(err)) => errors.push(err),
+                Err(NomErr::Failure(err)) => return Err(err),
+                _ => {},
+            }
+
+            return Err(ParserError::Base {
+                location: text,
+                kind: ErrorKind::Expected(Expectation::Something),
+                child: None,
+            });
         }
+        
+        Ok(Config {
+            initial_state,
+            event_processors,
+        })
     }
 }
 
