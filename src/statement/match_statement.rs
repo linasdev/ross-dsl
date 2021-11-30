@@ -1,6 +1,6 @@
 use nom::branch::alt;
 use nom::character::complete::{multispace0, multispace1};
-use nom::combinator::map_res;
+use nom::combinator::{map_res, cut};
 use nom::sequence::{delimited, pair, preceded, terminated};
 use nom::IResult;
 use std::convert::TryInto;
@@ -35,7 +35,7 @@ pub fn match_statement(text: &str) -> IResult<&str, Matcher, ParserError<&str>> 
         let event_keyword_parser = preceded(event_keyword, preceded(multispace1, content_parser));
 
         let match_keyword_parser =
-            preceded(match_keyword, preceded(multispace1, event_keyword_parser));
+            preceded(match_keyword, cut(preceded(multispace1, event_keyword_parser)));
 
         terminated(match_keyword_parser, semicolon)
     };
@@ -58,7 +58,7 @@ pub fn match_statement(text: &str) -> IResult<&str, Matcher, ParserError<&str>> 
 
         let match_keyword_parser = preceded(
             match_keyword,
-            preceded(multispace1, producer_keyword_parser),
+            cut(preceded(multispace1, producer_keyword_parser)),
         );
 
         terminated(match_keyword_parser, semicolon)
@@ -71,7 +71,7 @@ pub fn match_statement(text: &str) -> IResult<&str, Matcher, ParserError<&str>> 
 
         let filter_parser = delimited(multispace0, filter, multispace0);
         let content_parser = preceded(open_brace, pair(extractor_parser, filter_parser));
-        let keyword_parser = preceded(match_keyword, preceded(multispace1, content_parser));
+        let keyword_parser = preceded(match_keyword, cut(preceded(multispace1, content_parser)));
 
         terminated(keyword_parser, preceded(multispace0, close_brace))
     };

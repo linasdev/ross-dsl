@@ -1,5 +1,5 @@
 use nom::character::complete::multispace0;
-use nom::combinator::{all_consuming, complete};
+use nom::combinator::all_consuming;
 use nom::error::ErrorKind as NomErrorKind;
 use nom::multi::{many0, separated_list0};
 use nom::sequence::{delimited, preceded, terminated, tuple};
@@ -10,12 +10,12 @@ use std::convert::TryInto;
 
 use ross_config::config::Config;
 
-use crate::error::ParserError;
 use crate::literal::{literal, Literal};
 use crate::statement::const_statement::const_statement;
 use crate::statement::do_statement::do_statement;
 use crate::statement::let_statement::let_statement;
 use crate::statement::send_statement::send_statement;
+use crate::error::ParserError;
 use crate::symbol::{close_parenthesis, comma, open_parenthesis};
 
 pub struct Parser {}
@@ -32,7 +32,7 @@ impl Parser {
             multispace0,
         );
 
-        match all_consuming(complete(content_parser))(text) {
+        match all_consuming(content_parser)(text) {
             Ok((_, (initial_state, _constants, mut send_processors, mut do_processors))) => {
                 let mut initial_state_map = BTreeMap::new();
 

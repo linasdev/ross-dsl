@@ -1,6 +1,6 @@
 use nom::branch::alt;
 use nom::character::complete::{multispace0, multispace1};
-use nom::combinator::map_res;
+use nom::combinator::{cut, map_res};
 use nom::sequence::{preceded, terminated, tuple};
 use nom::IResult;
 use std::convert::TryInto;
@@ -80,7 +80,7 @@ pub fn send_statement(text: &str) -> IResult<&str, EventProcessor, ParserError<&
             },
         );
 
-        preceded(send_keyword, preceded(multispace1, content_parser))
+        preceded(send_keyword, cut(preceded(multispace1, content_parser)))
     };
 
     let normal_syntax_parser = {
@@ -122,7 +122,7 @@ pub fn send_statement(text: &str) -> IResult<&str, EventProcessor, ParserError<&
             },
         );
 
-        let keyword_parser = preceded(send_keyword, preceded(multispace1, content_parser));
+        let keyword_parser = preceded(send_keyword, cut(preceded(multispace1, content_parser)));
         terminated(keyword_parser, preceded(multispace0, semicolon))
     };
 

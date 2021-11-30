@@ -3,6 +3,8 @@ use nom::error::{ErrorKind as NomErrorKind, FromExternalError, ParseError};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter, Write};
 
+const MAX_LOCATION_LENGTH: usize = 50;
+
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Expectation {
     ArgumentCount(usize, usize),
@@ -89,13 +91,25 @@ impl<I: Display> Display for ParserError<I> {
                 kind,
                 child,
             } => {
-                write!(f, "{} at {}", kind, location)?;
+                let mut location = format!("{}", location).trim().to_string();
+
+                location = if let Some(first_line) = location.lines().next() {
+                    first_line.to_string()
+                } else {
+                    location
+                };
+
+                if location.len() > MAX_LOCATION_LENGTH {
+                    location = location[0..MAX_LOCATION_LENGTH].to_string() + "...";
+                }
+
+                write!(f, "{} at '{}'", kind, location)?;
 
                 if let Some(child) = child {
                     if let ParserError::Alt(ref siblings) = **child {
                         writeln!(f, " caused by one of:")?;
 
-                        let mut f = IndentWriter::new("  ", f);
+                        let mut f = IndentWriter::new("| ", f);
 
                         for (i, sibling) in siblings.iter().enumerate() {
                             write!(f, "{}", sibling)?;
@@ -106,7 +120,7 @@ impl<I: Display> Display for ParserError<I> {
                         }
                     } else {
                         writeln!(f, " caused by:")?;
-                        let mut f = IndentWriter::new("  ", f);
+                        let mut f = IndentWriter::new("| ", f);
                         write!(f, "{}", child)?;
                     }
                 }
@@ -116,7 +130,7 @@ impl<I: Display> Display for ParserError<I> {
             ParserError::Alt(siblings) => {
                 writeln!(f, "one of:")?;
 
-                let mut f = IndentWriter::new("  ", f);
+                let mut f = IndentWriter::new("| ", f);
 
                 for (i, sibling) in siblings.iter().enumerate() {
                     write!(f, "{}", sibling)?;

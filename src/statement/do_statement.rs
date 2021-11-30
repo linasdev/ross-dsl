@@ -1,6 +1,7 @@
 use nom::character::complete::multispace0;
 use nom::multi::{many0, many1};
 use nom::sequence::{pair, preceded, terminated};
+use nom::combinator::cut;
 use nom::IResult;
 
 use ross_config::event_processor::EventProcessor;
@@ -19,7 +20,7 @@ pub fn do_statement(text: &str) -> IResult<&str, EventProcessor, ParserError<&st
             many1(preceded(multispace0, fire_statement)),
         ),
     );
-    let keyword_parser = preceded(do_keyword, preceded(multispace0, content_parser));
+    let keyword_parser = preceded(do_keyword, cut(preceded(multispace0, content_parser)));
     let mut close_brace_parser = terminated(keyword_parser, preceded(multispace0, close_brace));
 
     let (input, (matchers, creators)) = close_brace_parser(text)?;

@@ -1,5 +1,6 @@
 use nom::character::complete::{multispace0, multispace1};
 use nom::sequence::{delimited, preceded, separated_pair, terminated};
+use nom::combinator::cut;
 use nom::{Err as NomErr, IResult};
 
 use crate::error::{ErrorKind, Expectation, ParserError};
@@ -12,7 +13,7 @@ pub fn const_statement(text: &str) -> IResult<&str, (&str, Literal), ParserError
     let name_parser = delimited(multispace1, alpha_or_underscore1, multispace0);
     let equal_sign_parser = terminated(equal_sign, multispace0);
     let name_value_pair_parser = separated_pair(name_parser, equal_sign_parser, literal);
-    let keyword_parser = preceded(const_keyword, name_value_pair_parser);
+    let keyword_parser = preceded(const_keyword, cut(name_value_pair_parser));
     let mut semicolon_parser = terminated(keyword_parser, semicolon);
 
     match semicolon_parser(text) {
