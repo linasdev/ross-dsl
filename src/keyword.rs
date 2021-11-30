@@ -1,21 +1,24 @@
-use nom::{Err, IResult};
+use nom::character::complete::alpha1;
+use nom::{Err as NomErr, IResult};
 
-use crate::parser::{alpha1, ParserError};
+use crate::error::{ErrorKind, Expectation, ParserError};
 
 macro_rules! implement_keyword_parser {
     ($parser_name:ident, $keyword:expr) => {
-        pub fn $parser_name(text: &str) -> IResult<&str, &str, ParserError> {
+        pub fn $parser_name(text: &str) -> IResult<&str, &str, ParserError<&str>> {
             match alpha1(text) {
                 Ok((input, $keyword)) => Ok((input, $keyword)),
-                Ok((_, value)) => Err(Err::Error(ParserError::ExpectedKeywordFound(
-                    text.to_string(),
-                    $keyword.to_string(),
-                    value.to_string(),
-                ))),
-                Err(Err::Error(ParserError::ExpectedAlphaFound(input, value))) => Err(Err::Error(
-                    ParserError::ExpectedKeywordFound(input, $keyword.to_string(), value),
-                )),
-                Err(err) => Err(Err::convert(err)),
+                Ok((_, value)) => Err(NomErr::Error(ParserError::Base {
+                    location: value,
+                    kind: ErrorKind::Expected(Expectation::Keyword($keyword)),
+                    child: None,
+                })),
+                Err(NomErr::Error(err)) => Err(NomErr::Error(ParserError::Base {
+                    location: text,
+                    kind: ErrorKind::Expected(Expectation::Keyword($keyword)),
+                    child: Some(Box::new(err)),
+                })),
+                err => err,
             }
         }
 
@@ -23,60 +26,62 @@ macro_rules! implement_keyword_parser {
         mod $parser_name {
             use super::*;
 
+            use cool_asserts::assert_matches;
+
             #[test]
-            fn $parser_name() {
-                assert_eq!(
-                    super::$parser_name(concat!($keyword, ";input")),
-                    Ok((";input", $keyword))
+            fn test() {
+                assert_matches!(
+                    $parser_name(concat!($keyword, ";input")),
+                    Ok((";input", $keyword)),
                 );
             }
 
-            mod unexpected_token {
-                use super::*;
-
-                #[test]
-                fn $parser_name() {
-                    assert_eq!(
-                        super::super::$parser_name("while123123"),
-                        Err(Err::Error(ParserError::ExpectedKeywordFound(
-                            "while123123".to_string(),
-                            $keyword.to_string(),
-                            "while".to_string()
-                        )))
-                    );
-                }
+            #[test]
+            fn unexpected_token_test() {
+                assert_matches!(
+                    $parser_name("asdasd"),
+                    Err(NomErr::Error(ParserError::Base {
+                        location,
+                        kind,
+                        child,
+                    })) => {
+                        assert_matches!(location, "asdasd");
+                        assert_matches!(kind, ErrorKind::Expected(Expectation::Keyword($keyword)));
+                        assert_matches!(child, None);
+                    }
+                );
             }
 
-            mod non_alpha {
-                use super::*;
-
-                #[test]
-                fn $parser_name() {
-                    assert_eq!(
-                        super::super::$parser_name("123123"),
-                        Err(Err::Error(ParserError::ExpectedKeywordFound(
-                            "123123".to_string(),
-                            $keyword.to_string(),
-                            "123123".to_string()
-                        )))
-                    );
-                }
+            #[test]
+            fn non_alpha_test() {
+                assert_matches!(
+                    $parser_name("123123"),
+                    Err(NomErr::Error(ParserError::Base {
+                        location,
+                        kind,
+                        child,
+                    })) => {
+                        assert_matches!(location, "123123");
+                        assert_matches!(kind, ErrorKind::Expected(Expectation::Keyword($keyword)));
+                        assert_matches!(child, Some(_));
+                    }
+                );
             }
 
-            mod empty {
-                use super::*;
-
-                #[test]
-                fn $parser_name() {
-                    assert_eq!(
-                        super::super::$parser_name(""),
-                        Err(Err::Error(ParserError::ExpectedKeywordFound(
-                            "".to_string(),
-                            $keyword.to_string(),
-                            "".to_string()
-                        )))
-                    );
-                }
+            #[test]
+            fn empty_test() {
+                assert_matches!(
+                    $parser_name(""),
+                    Err(NomErr::Error(ParserError::Base {
+                        location,
+                        kind,
+                        child,
+                    })) => {
+                        assert_matches!(location, "");
+                        assert_matches!(kind, ErrorKind::Expected(Expectation::Keyword($keyword)));
+                        assert_matches!(child, Some(_));
+                    }
+                );
             }
         }
     };

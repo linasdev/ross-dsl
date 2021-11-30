@@ -1,17 +1,18 @@
 use nom::branch::alt;
+use nom::character::complete::{multispace0, multispace1};
 use nom::sequence::{delimited, pair, preceded, terminated};
-use nom::{Err, IResult};
+use nom::IResult;
 
 use ross_config::creator::Creator;
 use ross_config::extractor::{Extractor, NoneExtractor};
 
+use crate::error::ParserError;
 use crate::extractor::extractor;
 use crate::keyword::fire_keyword;
-use crate::parser::{multispace0, multispace1, ParserError};
 use crate::producer::producer;
 use crate::symbol::{close_brace, open_brace};
 
-pub fn fire_statement(text: &str) -> IResult<&str, Creator, ParserError> {
+pub fn fire_statement(text: &str) -> IResult<&str, Creator, ParserError<&str>> {
     let extractor_parser = alt((delimited(multispace0, extractor, multispace0), |input| {
         Ok((input, Box::new(NoneExtractor::new()) as Box<dyn Extractor>))
     }));
@@ -21,26 +22,28 @@ pub fn fire_statement(text: &str) -> IResult<&str, Creator, ParserError> {
     let keyword_parser = preceded(fire_keyword, preceded(multispace1, content_parser));
     let mut close_brace_parser = terminated(keyword_parser, preceded(multispace0, close_brace));
 
-    match close_brace_parser(text) {
-        Ok((input, (extractor, producer))) => {
-            return Ok((
-                input,
-                Creator {
-                    extractor,
-                    producer,
-                },
-            ))
-        }
-        Err(err) => return Err(Err::convert(err)),
-    }
+    let (input, (extractor, producer)) = close_brace_parser(text)?;
+
+    Ok((
+        input,
+        Creator {
+            extractor,
+            producer,
+        },
+    ))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    use cool_asserts::assert_matches;
+    use nom::Err as NomErr;
+
     use ross_config::extractor::PacketExtractor;
     use ross_config::producer::PacketProducer;
+
+    use crate::error::{ErrorKind, Expectation};
 
     #[test]
     fn provided_extractor_test() {
@@ -65,35 +68,34 @@ mod tests {
 
     #[test]
     fn missing_close_brace_test() {
-        assert_eq!(
+        assert_matches!(
             fire_statement(
                 "fire {
                     PacketExtractor();
-                    PacketProducer(0xabab~u16);"
-            )
-            .unwrap_err(),
-            Err::Error(ParserError::ExpectedSymbolFound(
-                "".to_string(),
-                "}".to_string(),
-                "".to_string(),
-            ))
+                    PacketProducer(0xabab~u16);",
+            ),
+            Err(NomErr::Error(ParserError::Base {
+                location: _,
+                kind: ErrorKind::Expected(Expectation::Symbol('}')),
+                child: None,
+            }))
         );
     }
 
     #[test]
     fn invalid_literal_test() {
-        assert_eq!(
+        assert_matches!(
             fire_statement(
                 "fire {
                     PacketExtractor();
                     PacketProducer(0xabababab~u32);
-                }"
-            )
-            .unwrap_err(),
-            Err::Error(ParserError::CastFromToNotAllowed(
-                "u32".to_string(),
-                "u16".to_string(),
-            ))
+                }",
+            ),
+            Err(NomErr::Error(ParserError::Base {
+                location: _,
+                kind: ErrorKind::CastFromToNotAllowed("u32", "u16"),
+                child: None,
+            }))
         );
     }
 }

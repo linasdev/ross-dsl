@@ -4,12 +4,14 @@ use std::convert::TryInto;
 
 use ross_config::producer::*;
 
-use crate::parser::{alpha1, argument0, ParserError};
+use crate::error::{ErrorKind, ParserError};
+use crate::parser::{alpha_or_underscore1, argument0};
 use crate::symbol::semicolon;
 use crate::{impl_item_arg0, impl_item_arg1, impl_item_arg3};
 
-pub fn producer(text: &str) -> IResult<&str, Box<dyn Producer>, ParserError> {
-    let (input, (name, arguments)) = terminated(pair(alpha1, argument0), semicolon)(text)?;
+pub fn producer(text: &str) -> IResult<&str, Box<dyn Producer>, ParserError<&str>> {
+    let (input, (name, arguments)) =
+        terminated(pair(alpha_or_underscore1, argument0), semicolon)(text)?;
 
     impl_item_arg0!(input, name, arguments, NoneProducer);
     impl_item_arg1!(input, name, arguments, PacketProducer);
@@ -17,10 +19,11 @@ pub fn producer(text: &str) -> IResult<&str, Box<dyn Producer>, ParserError> {
     impl_item_arg3!(input, name, arguments, BcmChangeBrightnessProducer);
     impl_item_arg3!(input, name, arguments, BcmChangeBrightnessStateProducer);
 
-    Err(Err::Error(ParserError::UnknownProducer(
-        text.to_string(),
-        name.to_string(),
-    )))
+    Err(Err::Error(ParserError::Base {
+        location: name,
+        kind: ErrorKind::UnknownProducer,
+        child: None,
+    }))
 }
 
 #[cfg(test)]

@@ -1,16 +1,17 @@
+use nom::character::complete::multispace0;
 use nom::multi::{many0, many1};
 use nom::sequence::{pair, preceded, terminated};
-use nom::{Err, IResult};
+use nom::IResult;
 
 use ross_config::event_processor::EventProcessor;
 
+use crate::error::ParserError;
 use crate::keyword::do_keyword;
-use crate::parser::{multispace0, ParserError};
 use crate::statement::fire_statement::fire_statement;
 use crate::statement::match_statement::match_statement;
 use crate::symbol::{close_brace, open_brace};
 
-pub fn do_statement(text: &str) -> IResult<&str, EventProcessor, ParserError> {
+pub fn do_statement(text: &str) -> IResult<&str, EventProcessor, ParserError<&str>> {
     let content_parser = preceded(
         open_brace,
         pair(
@@ -21,17 +22,18 @@ pub fn do_statement(text: &str) -> IResult<&str, EventProcessor, ParserError> {
     let keyword_parser = preceded(do_keyword, preceded(multispace0, content_parser));
     let mut close_brace_parser = terminated(keyword_parser, preceded(multispace0, close_brace));
 
-    match close_brace_parser(text) {
-        Ok((input, (matchers, creators))) => {
-            return Ok((input, EventProcessor { matchers, creators }))
-        }
-        Err(err) => return Err(Err::convert(err)),
-    }
+    let (input, (matchers, creators)) = close_brace_parser(text)?;
+
+    Ok((input, EventProcessor { matchers, creators }))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use cool_asserts::assert_matches;
+    use nom::error::ErrorKind as NomErrorKind;
+    use nom::Err as NomErr;
 
     use ross_config::extractor::{
         EventCodeExtractor, EventProducerAddressExtractor, PacketExtractor,
@@ -39,6 +41,8 @@ mod tests {
     use ross_config::filter::ValueEqualToConstFilter;
     use ross_config::producer::PacketProducer;
     use ross_config::Value;
+
+    use crate::error::{ErrorKind, Expectation};
 
     #[test]
     fn provided_extractor_test() {
@@ -91,7 +95,7 @@ mod tests {
 
     #[test]
     fn missing_close_brace_test() {
-        assert_eq!(
+        assert_matches!(
             do_statement(
                 "do {
                     match event 0xabab~u16;
@@ -99,20 +103,19 @@ mod tests {
                     fire {
                         PacketExtractor();
                         PacketProducer(0xffff~u16);
-                    }"
-            )
-            .unwrap_err(),
-            Err::Error(ParserError::ExpectedSymbolFound(
-                "".to_string(),
-                "}".to_string(),
-                "".to_string(),
-            ))
+                    }",
+            ),
+            Err(NomErr::Error(ParserError::Base {
+                location: _,
+                kind: ErrorKind::Expected(Expectation::Symbol('}')),
+                child: None,
+            }))
         );
     }
 
     #[test]
     fn invalid_literal_test() {
-        assert_eq!(
+        assert_matches!(
             do_statement(
                 "do {
                     match event 0xabab~u16;
@@ -121,31 +124,29 @@ mod tests {
                         PacketExtractor();
                         PacketProducer(0xffffffff~u32);
                     }
-                }"
-            )
-            .unwrap_err(),
-            Err::Error(ParserError::CastFromToNotAllowed(
-                "u32".to_string(),
-                "u16".to_string(),
-            ))
+                }",
+            ),
+            Err(NomErr::Error(ParserError::Base {
+                location: _,
+                kind: ErrorKind::Nom(NomErrorKind::Many1),
+                child: Some(_),
+            }))
         );
     }
 
     #[test]
     fn no_fire_statement_test() {
-        assert_eq!(
+        assert_matches!(
             do_statement(
                 "do {
                     match event 0xabab~u16;
-                    match producer 0x0123~u16;
-                }"
-            )
-            .unwrap_err(),
-            Err::Error(ParserError::ExpectedKeywordFound(
-                "}".to_string(),
-                "fire".to_string(),
-                "}".to_string(),
-            ))
+                    match producer 0x0123~u16;",
+            ),
+            Err(NomErr::Error(ParserError::Base {
+                location: _,
+                kind: ErrorKind::Nom(NomErrorKind::Many1),
+                child: Some(_),
+            }))
         );
     }
 }

@@ -2,14 +2,18 @@
 macro_rules! impl_item_arg0 {
     ($input:expr, $name:expr, $arguments:expr, $item_type:ty) => {
         if $name == stringify!($item_type) {
+            use nom::Err as NomErr;
+
+            use crate::error::{ErrorKind, Expectation, ParserError};
+
             return if $arguments.len() == 0 {
                 Ok(($input, Box::new(<$item_type>::new())))
             } else {
-                Err(Err::Error(ParserError::ExpectedArgumentsButGot(
-                    $input.to_string(),
-                    0,
-                    $arguments.len(),
-                )))
+                Err(NomErr::Error(ParserError::Base {
+                    location: $input,
+                    kind: ErrorKind::Expected(Expectation::ArgumentCount(0, $arguments.len())),
+                    child: None,
+                }))
             };
         }
     };
@@ -19,6 +23,10 @@ macro_rules! impl_item_arg0 {
 macro_rules! impl_item_arg1 {
     ($input:expr, $name:expr, $arguments:expr, $item_type:ty) => {
         if $name == stringify!($item_type) {
+            use nom::Err as NomErr;
+
+            use crate::error::{ErrorKind, Expectation, ParserError};
+
             return if $arguments.len() == 1 {
                 Ok((
                     $input,
@@ -30,11 +38,11 @@ macro_rules! impl_item_arg1 {
                     )),
                 ))
             } else {
-                Err(Err::Error(ParserError::ExpectedArgumentsButGot(
-                    $input.to_string(),
-                    1,
-                    $arguments.len(),
-                )))
+                Err(NomErr::Error(ParserError::Base {
+                    location: $input,
+                    kind: ErrorKind::Expected(Expectation::ArgumentCount(1, $arguments.len())),
+                    child: None,
+                }))
             };
         }
     };
@@ -44,6 +52,10 @@ macro_rules! impl_item_arg1 {
 macro_rules! impl_item_arg2 {
     ($input:expr, $name:expr, $arguments:expr, $item_type:ty) => {
         if $name == stringify!($item_type) {
+            use nom::Err as NomErr;
+
+            use crate::error::{ErrorKind, Expectation, ParserError};
+
             return if $arguments.len() == 2 {
                 Ok((
                     $input,
@@ -59,11 +71,11 @@ macro_rules! impl_item_arg2 {
                     )),
                 ))
             } else {
-                Err(Err::Error(ParserError::ExpectedArgumentsButGot(
-                    $input.to_string(),
-                    2,
-                    $arguments.len(),
-                )))
+                Err(NomErr::Error(ParserError::Base {
+                    location: $input,
+                    kind: ErrorKind::Expected(Expectation::ArgumentCount(2, $arguments.len())),
+                    child: None,
+                }))
             };
         }
     };
@@ -73,6 +85,10 @@ macro_rules! impl_item_arg2 {
 macro_rules! impl_item_arg3 {
     ($input:expr, $name:expr, $arguments:expr, $item_type:ty) => {
         if $name == stringify!($item_type) {
+            use nom::Err as NomErr;
+
+            use crate::error::{ErrorKind, Expectation, ParserError};
+
             return if $arguments.len() == 3 {
                 Ok((
                     $input,
@@ -92,11 +108,11 @@ macro_rules! impl_item_arg3 {
                     )),
                 ))
             } else {
-                Err(Err::Error(ParserError::ExpectedArgumentsButGot(
-                    $input.to_string(),
-                    3,
-                    $arguments.len(),
-                )))
+                Err(NomErr::Error(ParserError::Base {
+                    location: $input,
+                    kind: ErrorKind::Expected(Expectation::ArgumentCount(3, $arguments.len())),
+                    child: None,
+                }))
             };
         }
     };
@@ -108,6 +124,11 @@ macro_rules! impl_tests_for_item_arg0 {
         mod $test_module_name {
             use super::*;
 
+            use cool_asserts::assert_matches;
+            use nom::Err as NomErr;
+
+            use crate::error::{ParserError, Expectation, ErrorKind};
+
             #[test]
             fn test() {
                 let (input, item) = $item(concat!(stringify!($item_type), "( );input")).unwrap();
@@ -118,26 +139,34 @@ macro_rules! impl_tests_for_item_arg0 {
 
             #[test]
             fn missing_semicolon_test() {
-                assert_eq!(
-                    $item(concat!(stringify!($item_type), "( )input")).unwrap_err(),
-                    Err::Error(ParserError::ExpectedSymbolFound(
-                        "input".to_string(),
-                        ";".to_string(),
-                        "input".to_string()
-                    ))
+                assert_matches!(
+                    $item(concat!(stringify!($item_type), "( )input")),
+                    Err(NomErr::Error(ParserError::Base {
+                        location,
+                        kind,
+                        child,
+                    })) => {
+                        assert_matches!(location, "input");
+                        assert_matches!(kind, ErrorKind::Expected(Expectation::Symbol(';')));
+                        assert_matches!(child, None);
+                    }
                 );
             }
 
             #[test]
 
             fn too_many_arguments_test() {
-                assert_eq!(
-                    $item(concat!(stringify!($item_type), "( false );input")).unwrap_err(),
-                    Err::Error(ParserError::ExpectedArgumentsButGot(
-                        "input".to_string(),
-                        0,
-                        1,
-                    ))
+                assert_matches!(
+                    $item(concat!(stringify!($item_type), "(false);input")),
+                    Err(NomErr::Error(ParserError::Base {
+                        location,
+                        kind,
+                        child,
+                    })) => {
+                        assert_matches!(location, "input");
+                        assert_matches!(kind, ErrorKind::Expected(Expectation::ArgumentCount(0, 1)));
+                        assert_matches!(child, None);
+                    }
                 );
             }
         }
@@ -150,13 +179,18 @@ macro_rules! impl_tests_for_item_arg1 {
         mod $test_module_name {
             use super::*;
 
+            use cool_asserts::assert_matches;
+            use nom::Err as NomErr;
+
+            use crate::error::{ParserError, Expectation, ErrorKind};
+
             #[test]
             fn test() {
                 let (input, item) = $item(concat!(
                     stringify!($item_type),
-                    "( ",
+                    "(",
                     $argument0,
-                    " );input"
+                    ");input"
                 ))
                 .unwrap();
 
@@ -169,40 +203,51 @@ macro_rules! impl_tests_for_item_arg1 {
 
             #[test]
             fn missing_semicolon_test() {
-                assert_eq!(
-                    $item(concat!(stringify!($item_type), "( ", $argument0, " )input"))
-                        .unwrap_err(),
-                    Err::Error(ParserError::ExpectedSymbolFound(
-                        "input".to_string(),
-                        ";".to_string(),
-                        "input".to_string()
-                    ))
+                assert_matches!(
+                    $item(concat!(stringify!($item_type), "(", $argument0, ")input")),
+                    Err(NomErr::Error(ParserError::Base {
+                        location,
+                        kind,
+                        child,
+                    })) => {
+                        assert_matches!(location, "input");
+                        assert_matches!(kind, ErrorKind::Expected(Expectation::Symbol(';')));
+                        assert_matches!(child, None);
+                    }
                 );
             }
 
             #[test]
 
             fn too_few_arguments_test() {
-                assert_eq!(
-                    $item(concat!(stringify!($item_type), "( );input")).unwrap_err(),
-                    Err::Error(ParserError::ExpectedArgumentsButGot(
-                        "input".to_string(),
-                        1,
-                        0,
-                    ))
+                assert_matches!(
+                    $item(concat!(stringify!($item_type), "();input")),
+                    Err(NomErr::Error(ParserError::Base {
+                        location,
+                        kind,
+                        child,
+                    })) => {
+                        assert_matches!(location, "input");
+                        assert_matches!(kind, ErrorKind::Expected(Expectation::ArgumentCount(1, 0)));
+                        assert_matches!(child, None);
+                    }
                 );
             }
 
             #[test]
 
             fn too_many_arguments_test() {
-                assert_eq!(
-                    $item(concat!(stringify!($item_type), "( false, false );input")).unwrap_err(),
-                    Err::Error(ParserError::ExpectedArgumentsButGot(
-                        "input".to_string(),
-                        1,
-                        2,
-                    ))
+                assert_matches!(
+                    $item(concat!(stringify!($item_type), "(false, false);input")),
+                    Err(NomErr::Error(ParserError::Base {
+                        location,
+                        kind,
+                        child,
+                    })) => {
+                        assert_matches!(location, "input");
+                        assert_matches!(kind, ErrorKind::Expected(Expectation::ArgumentCount(1, 2)));
+                        assert_matches!(child, None);
+                    }
                 );
             }
         }
@@ -215,15 +260,20 @@ macro_rules! impl_tests_for_item_arg2 {
         mod $test_module_name {
             use super::*;
 
+            use cool_asserts::assert_matches;
+            use nom::Err as NomErr;
+
+            use crate::error::{ParserError, Expectation, ErrorKind};
+
             #[test]
             fn test() {
                 let (input, item) = $item(concat!(
                     stringify!($item_type),
-                    "( ",
+                    "(",
                     $argument0,
-                    " , ",
+                    ", ",
                     $argument1,
-                    " );input"
+                    ");input"
                 ))
                 .unwrap();
 
@@ -239,7 +289,7 @@ macro_rules! impl_tests_for_item_arg2 {
 
             #[test]
             fn missing_semicolon_test() {
-                assert_eq!(
+                assert_matches!(
                     $item(concat!(
                         stringify!($item_type),
                         "( ",
@@ -247,43 +297,50 @@ macro_rules! impl_tests_for_item_arg2 {
                         " , ",
                         $argument1,
                         " )input"
-                    ))
-                    .unwrap_err(),
-                    Err::Error(ParserError::ExpectedSymbolFound(
-                        "input".to_string(),
-                        ";".to_string(),
-                        "input".to_string()
-                    ))
+                    )),
+                    Err(NomErr::Error(ParserError::Base {
+                        location,
+                        kind,
+                        child,
+                    })) => {
+                        assert_matches!(location, "input");
+                        assert_matches!(kind, ErrorKind::Expected(Expectation::Symbol(';')));
+                        assert_matches!(child, None);
+                    }
                 );
             }
 
             #[test]
 
             fn too_few_arguments_test() {
-                assert_eq!(
-                    $item(concat!(stringify!($item_type), "( false );input")).unwrap_err(),
-                    Err::Error(ParserError::ExpectedArgumentsButGot(
-                        "input".to_string(),
-                        2,
-                        1,
-                    ))
+                assert_matches!(
+                    $item(concat!(stringify!($item_type), "(false);input")),
+                    Err(NomErr::Error(ParserError::Base {
+                        location,
+                        kind,
+                        child,
+                    })) => {
+                        assert_matches!(location, "input");
+                        assert_matches!(kind, ErrorKind::Expected(Expectation::ArgumentCount(2, 1)));
+                        assert_matches!(child, None);
+                    }
                 );
             }
 
             #[test]
 
             fn too_many_arguments_test() {
-                assert_eq!(
-                    $item(concat!(
-                        stringify!($item_type),
-                        "( false, false, false );input"
-                    ))
-                    .unwrap_err(),
-                    Err::Error(ParserError::ExpectedArgumentsButGot(
-                        "input".to_string(),
-                        2,
-                        3,
-                    ))
+                assert_matches!(
+                    $item(concat!(stringify!($item_type), "(false, false, false);input")),
+                    Err(NomErr::Error(ParserError::Base {
+                        location,
+                        kind,
+                        child,
+                    })) => {
+                        assert_matches!(location, "input");
+                        assert_matches!(kind, ErrorKind::Expected(Expectation::ArgumentCount(2, 3)));
+                        assert_matches!(child, None);
+                    }
                 );
             }
         }
@@ -295,6 +352,11 @@ macro_rules! impl_tests_for_item_arg3 {
     ($test_module_name:ident, $item:ident, $item_type:ty, ($argument0:expr, $argument0_value:expr), ($argument1:expr, $argument1_value:expr), ($argument2:expr, $argument2_value:expr)) => {
         mod $test_module_name {
             use super::*;
+
+            use cool_asserts::assert_matches;
+            use nom::Err as NomErr;
+
+            use crate::error::{ParserError, Expectation, ErrorKind};
 
             #[test]
             fn test() {
@@ -322,7 +384,7 @@ macro_rules! impl_tests_for_item_arg3 {
 
             #[test]
             fn missing_semicolon_test() {
-                assert_eq!(
+                assert_matches!(
                     $item(concat!(
                         stringify!($item_type),
                         "( ",
@@ -332,43 +394,50 @@ macro_rules! impl_tests_for_item_arg3 {
                         " , ",
                         $argument2,
                         " )input"
-                    ))
-                    .unwrap_err(),
-                    Err::Error(ParserError::ExpectedSymbolFound(
-                        "input".to_string(),
-                        ";".to_string(),
-                        "input".to_string()
-                    ))
+                    )),
+                    Err(NomErr::Error(ParserError::Base {
+                        location,
+                        kind,
+                        child,
+                    })) => {
+                        assert_matches!(location, "input");
+                        assert_matches!(kind, ErrorKind::Expected(Expectation::Symbol(';')));
+                        assert_matches!(child, None);
+                    }
                 );
             }
 
             #[test]
 
             fn too_few_arguments_test() {
-                assert_eq!(
-                    $item(concat!(stringify!($item_type), "( false );input")).unwrap_err(),
-                    Err::Error(ParserError::ExpectedArgumentsButGot(
-                        "input".to_string(),
-                        3,
-                        1,
-                    ))
+                assert_matches!(
+                    $item(concat!(stringify!($item_type), "(false, false);input")),
+                    Err(NomErr::Error(ParserError::Base {
+                        location,
+                        kind,
+                        child,
+                    })) => {
+                        assert_matches!(location, "input");
+                        assert_matches!(kind, ErrorKind::Expected(Expectation::ArgumentCount(3, 2)));
+                        assert_matches!(child, None);
+                    }
                 );
             }
 
             #[test]
 
             fn too_many_arguments_test() {
-                assert_eq!(
-                    $item(concat!(
-                        stringify!($item_type),
-                        "( false, false, false, false );input"
-                    ))
-                    .unwrap_err(),
-                    Err::Error(ParserError::ExpectedArgumentsButGot(
-                        "input".to_string(),
-                        3,
-                        4,
-                    ))
+                assert_matches!(
+                    $item(concat!(stringify!($item_type), "(false, false, false, false);input")),
+                    Err(NomErr::Error(ParserError::Base {
+                        location,
+                        kind,
+                        child,
+                    })) => {
+                        assert_matches!(location, "input");
+                        assert_matches!(kind, ErrorKind::Expected(Expectation::ArgumentCount(3, 4)));
+                        assert_matches!(child, None);
+                    }
                 );
             }
         }

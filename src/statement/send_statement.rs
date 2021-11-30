@@ -1,6 +1,8 @@
+use nom::branch::alt;
+use nom::character::complete::{multispace0, multispace1};
 use nom::combinator::map_res;
 use nom::sequence::{preceded, terminated, tuple};
-use nom::{Err, IResult};
+use nom::IResult;
 use std::convert::TryInto;
 
 use ross_config::creator::Creator;
@@ -11,14 +13,14 @@ use ross_config::matcher::Matcher;
 use ross_config::producer::PacketProducer;
 use ross_config::Value;
 
+use crate::error::ParserError;
 use crate::keyword::{from_keyword, if_keyword, send_keyword, to_keyword};
 use crate::literal::literal;
-use crate::parser::{multispace0, multispace1, ParserError};
 use crate::statement::match_statement::match_statement;
 use crate::symbol::semicolon;
 
-pub fn send_statement(text: &str) -> IResult<&str, EventProcessor, ParserError> {
-    let mut if_match_parser = {
+pub fn send_statement(text: &str) -> IResult<&str, EventProcessor, ParserError<&str>> {
+    let if_match_parser = {
         let tuple_parser = tuple((
             literal,
             multispace1,
@@ -35,7 +37,7 @@ pub fn send_statement(text: &str) -> IResult<&str, EventProcessor, ParserError> 
             match_statement,
         ));
 
-        let content_parser = map_res(
+        let content_parser = map_res::<_, _, _, _, ParserError<&str>, _, _>(
             tuple_parser,
             |(
                 event_code,
@@ -81,15 +83,7 @@ pub fn send_statement(text: &str) -> IResult<&str, EventProcessor, ParserError> 
         preceded(send_keyword, preceded(multispace1, content_parser))
     };
 
-    match if_match_parser(text) {
-        Ok((input, (matchers, creators))) => {
-            return Ok((input, EventProcessor { matchers, creators }))
-        }
-        Err(Err::Error(ParserError::ExpectedSymbolFound(_, expected, _))) if expected == " " => {}
-        Err(err) => return Err(Err::convert(err)),
-    }
-
-    let mut normal_syntax_parser = {
+    let normal_syntax_parser = {
         let tuple_parser = tuple((
             literal,
             multispace1,
@@ -102,7 +96,7 @@ pub fn send_statement(text: &str) -> IResult<&str, EventProcessor, ParserError> 
             literal,
         ));
 
-        let content_parser = map_res(
+        let content_parser = map_res::<_, _, _, _, ParserError<&str>, _, _>(
             tuple_parser,
             |(event_code, _, _, _, from_address, _, _, _, to_address)| {
                 let event_code = event_code.try_into()?;
@@ -132,17 +126,20 @@ pub fn send_statement(text: &str) -> IResult<&str, EventProcessor, ParserError> 
         terminated(keyword_parser, preceded(multispace0, semicolon))
     };
 
-    match normal_syntax_parser(text) {
-        Ok((input, (matchers, creators))) => {
-            return Ok((input, EventProcessor { matchers, creators }))
-        }
-        Err(err) => return Err(Err::convert(err)),
-    }
+    let (input, (matchers, creators)) = alt((if_match_parser, normal_syntax_parser))(text)?;
+
+    Ok((input, EventProcessor { matchers, creators }))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use cool_asserts::assert_matches;
+    use nom::error::ErrorKind as NomErrorKind;
+    use nom::Err as NomErr;
+
+    use crate::error::ErrorKind;
 
     #[test]
     fn normal_syntax_test() {
@@ -186,57 +183,56 @@ mod tests {
 
     #[test]
     fn normal_syntax_missing_semicolon_test() {
-        assert_eq!(
-            send_statement("send 0xabab~u16 from 0x0123~u16 to 0xffff~u16").unwrap_err(),
-            Err::Error(ParserError::ExpectedSymbolFound(
-                "".to_string(),
-                ";".to_string(),
-                "".to_string(),
-            ))
+        assert_matches!(
+            match_statement("send 0xabab~u16 from 0x0123~u16 to 0xffff~u16"),
+            Err(NomErr::Error(ParserError::Base {
+                location: _,
+                kind: ErrorKind::Nom(NomErrorKind::Alt),
+                child: Some(_),
+            }))
         );
     }
 
     #[test]
     fn normal_syntax_missing_from_keyword_test() {
-        assert_eq!(
-            send_statement("send 0xabab~u16 0x0123~u16 to 0xffff~u16").unwrap_err(),
-            Err::Error(ParserError::ExpectedKeywordFound(
-                "0x0123~u16 to 0xffff~u16".to_string(),
-                "from".to_string(),
-                "0x0123~u16 to 0xffff~u16".to_string(),
-            ))
+        assert_matches!(
+            match_statement("send 0xabab~u16 0x0123~u16 to 0xffff~u16;"),
+            Err(NomErr::Error(ParserError::Base {
+                location: _,
+                kind: ErrorKind::Nom(NomErrorKind::Alt),
+                child: Some(_),
+            }))
         );
     }
 
     #[test]
     fn normal_syntax_missing_to_keyword_test() {
-        assert_eq!(
-            send_statement("send 0xabab~u16 from 0x0123~u16 0xffff~u16").unwrap_err(),
-            Err::Error(ParserError::ExpectedKeywordFound(
-                "0xffff~u16".to_string(),
-                "to".to_string(),
-                "0xffff~u16".to_string(),
-            ))
+        assert_matches!(
+            match_statement("send 0xabab~u16 from 0x0123~u16 0xffff~u16;"),
+            Err(NomErr::Error(ParserError::Base {
+                location: _,
+                kind: ErrorKind::Nom(NomErrorKind::Alt),
+                child: Some(_),
+            }))
         );
     }
 
     #[test]
     fn normal_syntax_empty_test() {
-        assert_eq!(
-            send_statement("").unwrap_err(),
-            Err::Error(ParserError::ExpectedKeywordFound(
-                "".to_string(),
-                "send".to_string(),
-                "".to_string(),
-            ))
+        assert_matches!(
+            match_statement(""),
+            Err(NomErr::Error(ParserError::Base {
+                location: _,
+                kind: ErrorKind::Nom(NomErrorKind::Alt),
+                child: Some(_),
+            }))
         );
     }
 
     #[test]
     fn if_match_event_test() {
         let (input, event_processor) = send_statement(
-            "send 0xabab~u16 from 0x0123~u16 to 0xffff~u16
-            if match event 0xbaba~u16;input",
+            "send 0xabab~u16 from 0x0123~u16 to 0xffff~u16 if match event 0xbaba~u16;input",
         )
         .unwrap();
 
@@ -285,51 +281,41 @@ mod tests {
 
     #[test]
     fn if_match_event_missing_semicolon_test() {
-        assert_eq!(
-            send_statement(
-                "send 0xabab~u16 from 0x0123~u16 to 0xffff~u16
-                if match event 0xbaba~u16",
-            )
-            .unwrap_err(),
-            Err::Error(ParserError::ExpectedSymbolFound(
-                "".to_string(),
-                ";".to_string(),
-                "".to_string(),
-            ))
+        assert_matches!(
+            match_statement(
+                "send 0xabab~u16 from 0x0123~u16 to 0xffff~u16 if match event 0xbaba~u16",
+            ),
+            Err(NomErr::Error(ParserError::Base {
+                location: _,
+                kind: ErrorKind::Nom(NomErrorKind::Alt),
+                child: Some(_),
+            }))
         );
     }
 
     #[test]
     fn if_match_event_missing_from_keyword_test() {
-        assert_eq!(
-            send_statement(
-                "send 0xabab~u16  0x0123~u16 to 0xffff~u16
-                if match event 0xbaba~u16;input"
-            )
-            .unwrap_err(),
-            Err::Error(ParserError::ExpectedKeywordFound(
-                "0x0123~u16 to 0xffff~u16\n                if match event 0xbaba~u16;input"
-                    .to_string(),
-                "from".to_string(),
-                "0x0123~u16 to 0xffff~u16\n                if match event 0xbaba~u16;input"
-                    .to_string(),
-            ))
+        assert_matches!(
+            match_statement("send 0xabab~u16 0x0123~u16 to 0xffff~u16 if match event 0xbaba~u16;"),
+            Err(NomErr::Error(ParserError::Base {
+                location: _,
+                kind: ErrorKind::Nom(NomErrorKind::Alt),
+                child: Some(_),
+            }))
         );
     }
 
     #[test]
     fn if_match_event_missing_to_keyword_test() {
-        assert_eq!(
-            send_statement(
-                "send 0xabab~u16 from 0x0123~u16  0xffff~u16
-                if match event 0xbaba~u16;input"
-            )
-            .unwrap_err(),
-            Err::Error(ParserError::ExpectedKeywordFound(
-                "0xffff~u16\n                if match event 0xbaba~u16;input".to_string(),
-                "to".to_string(),
-                "0xffff~u16\n                if match event 0xbaba~u16;input".to_string(),
-            ))
+        assert_matches!(
+            match_statement(
+                "send 0xabab~u16 from 0x0123~u16 0xffff~u16 if match event 0xbaba~u16;",
+            ),
+            Err(NomErr::Error(ParserError::Base {
+                location: _,
+                kind: ErrorKind::Nom(NomErrorKind::Alt),
+                child: Some(_),
+            }))
         );
     }
 }
