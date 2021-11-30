@@ -12,11 +12,12 @@ use ross_config::filter::Filter;
 use ross_config::filter::ValueEqualToConstFilter;
 use ross_config::matcher::Matcher;
 use ross_config::Value;
+use ross_protocol::event::event_code::INTERNAL_SYSTEM_TICK_EVENT_CODE;
 
 use crate::error::ParserError;
 use crate::extractor::extractor;
 use crate::filter::filter;
-use crate::keyword::{event_keyword, match_keyword, producer_keyword};
+use crate::keyword::{event_keyword, match_keyword, producer_keyword, tick_keyword};
 use crate::literal::{literal_or_constant, Literal};
 use crate::symbol::{close_brace, open_brace, semicolon};
 
@@ -74,6 +75,24 @@ pub fn match_statement<'a>(
             terminated(match_keyword_parser, semicolon)
         };
 
+        let tick_match_parser = {
+            let content_parser = |text| {
+                let extractor = Box::new(EventCodeExtractor::new()) as Box<dyn Extractor>;
+                let filter = Box::new(ValueEqualToConstFilter::new(Value::U16(
+                    INTERNAL_SYSTEM_TICK_EVENT_CODE,
+                ))) as Box<dyn Filter>;
+
+                Ok((text, (extractor, filter)))
+            };
+
+            let tick_keyword_parser = preceded(tick_keyword, content_parser);
+
+            let match_keyword_parser =
+                preceded(match_keyword, preceded(multispace1, tick_keyword_parser));
+
+            terminated(match_keyword_parser, semicolon)
+        };
+
         let block_match_parser = {
             let extractor_parser = alt((
                 delimited(multispace0, extractor(constants), multispace0),
@@ -90,6 +109,7 @@ pub fn match_statement<'a>(
         let (input, (extractor, filter)) = alt((
             event_match_parser,
             producer_match_parser,
+            tick_match_parser,
             block_match_parser,
         ))(text)?;
 
@@ -214,7 +234,7 @@ mod tests {
     fn producer_test() {
         let constants = BTreeMap::new();
         let (input, matcher) =
-            match_statement(&constants)("match  producer  0xabab~u16;input").unwrap();
+            match_statement(&constants)("match producer 0xabab~u16;input").unwrap();
 
         assert_eq!(input, "input");
         assert_eq!(
@@ -245,6 +265,36 @@ mod tests {
         let constants = BTreeMap::new();
         assert_matches!(
             match_statement(&constants)("match producer 0xabab~u16"),
+            Err(NomErr::Error(ParserError::Base {
+                location: _,
+                kind: ErrorKind::Nom(NomErrorKind::Alt),
+                child: Some(_),
+            }))
+        );
+    }
+
+    #[test]
+    fn tick_test() {
+        let constants = BTreeMap::new();
+        let (input, matcher) =
+            match_statement(&constants)("match tick;input").unwrap();
+
+        assert_eq!(input, "input");
+        assert_eq!(
+            format!("{:?}", matcher.extractor),
+            format!("{:?}", EventCodeExtractor::new())
+        );
+        assert_eq!(
+            format!("{:?}", matcher.filter),
+            format!("{:?}", ValueEqualToConstFilter::new(Value::U16(INTERNAL_SYSTEM_TICK_EVENT_CODE)))
+        );
+    }
+
+    #[test]
+    fn tick_missing_semicolon_test() {
+        let constants = BTreeMap::new();
+        assert_matches!(
+            match_statement(&constants)("match tick"),
             Err(NomErr::Error(ParserError::Base {
                 location: _,
                 kind: ErrorKind::Nom(NomErrorKind::Alt),
