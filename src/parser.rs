@@ -149,7 +149,7 @@ pub fn name_parser(text: &str) -> IResult<&str, &str, ParserError<&str>> {
             }));
         }
     }
-    
+
     match text.split_at_position1_complete(
         |item| !item.is_alpha() && !item.is_digit(10) && item != '_',
         NomErrorKind::Alpha,
