@@ -1,7 +1,7 @@
 use nom::character::complete::multispace0;
+use nom::combinator::cut;
 use nom::multi::{many0, many1};
 use nom::sequence::{pair, preceded, terminated};
-use nom::combinator::cut;
 use nom::IResult;
 
 use ross_config::event_processor::EventProcessor;

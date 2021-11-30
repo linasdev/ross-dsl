@@ -1,6 +1,6 @@
 use nom::character::complete::{multispace0, multispace1};
-use nom::sequence::{delimited, preceded, separated_pair, terminated};
 use nom::combinator::cut;
+use nom::sequence::{delimited, preceded, separated_pair, terminated};
 use nom::{Err as NomErr, IResult};
 
 use crate::error::{ErrorKind, Expectation, ParserError};

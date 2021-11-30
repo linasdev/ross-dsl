@@ -10,12 +10,12 @@ use std::convert::TryInto;
 
 use ross_config::config::Config;
 
+use crate::error::ParserError;
 use crate::literal::{literal, Literal};
 use crate::statement::const_statement::const_statement;
 use crate::statement::do_statement::do_statement;
 use crate::statement::let_statement::let_statement;
 use crate::statement::send_statement::send_statement;
-use crate::error::ParserError;
 use crate::symbol::{close_parenthesis, comma, open_parenthesis};
 
 pub struct Parser {}

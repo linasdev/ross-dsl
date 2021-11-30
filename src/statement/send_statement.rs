@@ -1,7 +1,7 @@
 use nom::branch::alt;
 use nom::character::complete::{multispace0, multispace1};
-use nom::combinator::{cut, map_res, map,};
-use nom::sequence::{preceded, terminated, tuple, separated_pair};
+use nom::combinator::{cut, map, map_res};
+use nom::sequence::{preceded, separated_pair, terminated, tuple};
 use nom::IResult;
 use std::convert::TryInto;
 
@@ -19,11 +19,15 @@ use crate::literal::literal;
 use crate::statement::match_statement::match_statement;
 use crate::symbol::semicolon;
 
-pub fn send_statement(text: &str) -> IResult<&str, EventProcessor, ParserError<&str>> {    
+pub fn send_statement(text: &str) -> IResult<&str, EventProcessor, ParserError<&str>> {
     let if_match_parser = {
         let additional_matcher_parser = cut(preceded(multispace1, match_statement));
-        let pair_parser = separated_pair(terminated(base_syntax_parser, multispace1), if_keyword, additional_matcher_parser);
-        
+        let pair_parser = separated_pair(
+            terminated(base_syntax_parser, multispace1),
+            if_keyword,
+            additional_matcher_parser,
+        );
+
         map(pair_parser, |((mut matchers, creators), matcher)| {
             matchers.push(matcher);
             (matchers, creators)
@@ -37,7 +41,9 @@ pub fn send_statement(text: &str) -> IResult<&str, EventProcessor, ParserError<&
     Ok((input, EventProcessor { matchers, creators }))
 }
 
-fn base_syntax_parser(text: &str) -> IResult<&str, (Vec<Matcher>, Vec<Creator>), ParserError<&str>>{
+fn base_syntax_parser(
+    text: &str,
+) -> IResult<&str, (Vec<Matcher>, Vec<Creator>), ParserError<&str>> {
     let tuple_parser = tuple((
         literal,
         multispace1,
@@ -256,9 +262,7 @@ mod tests {
     #[test]
     fn if_match_event_missing_to_keyword_test() {
         assert_matches!(
-            send_statement(
-                "send 0xabab~u16 from 0x0123~u16 0xffff~u16 if match event 0xbaba~u16;",
-            ),
+            send_statement("send 0xabab~u16 from 0x0123~u16 0xffff~u16 if match event 0xbaba~u16;",),
             Err(NomErr::Failure(ParserError::Base {
                 location: _,
                 kind: ErrorKind::Expected(Expectation::Keyword("to")),

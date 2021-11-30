@@ -1,7 +1,7 @@
 use nom::branch::alt;
 use nom::character::complete::{multispace0, multispace1};
-use nom::sequence::{delimited, pair, preceded, terminated};
 use nom::combinator::cut;
+use nom::sequence::{delimited, pair, preceded, terminated};
 use nom::IResult;
 
 use ross_config::creator::Creator;
