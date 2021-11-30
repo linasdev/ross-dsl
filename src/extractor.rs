@@ -7,7 +7,7 @@ use ross_config::extractor::*;
 use crate::error::{ErrorKind, ParserError};
 use crate::impl_item_arg0;
 use crate::literal::Literal;
-use crate::parser::{alpha_or_underscore1, argument0};
+use crate::parser::{argument0, name_parser};
 use crate::symbol::semicolon;
 
 pub fn extractor<'a>(
@@ -15,7 +15,7 @@ pub fn extractor<'a>(
 ) -> impl FnMut(&str) -> IResult<&str, Box<dyn Extractor>, ParserError<&str>> + 'a {
     move |text| {
         let (input, (name, arguments)) =
-            terminated(pair(alpha_or_underscore1, argument0(constants)), semicolon)(text)?;
+            terminated(pair(name_parser, argument0(constants)), semicolon)(text)?;
 
         impl_item_arg0!(input, name, arguments, NoneExtractor);
         impl_item_arg0!(input, name, arguments, PacketExtractor);

@@ -135,8 +135,11 @@ impl Parser {
     }
 }
 
-pub fn alpha_or_underscore1(text: &str) -> IResult<&str, &str, ParserError<&str>> {
-    text.split_at_position1_complete(|item| !item.is_alpha() && item != '_', NomErrorKind::Alpha)
+pub fn name_parser(text: &str) -> IResult<&str, &str, ParserError<&str>> {
+    text.split_at_position1_complete(
+        |item| !item.is_alpha() && !item.is_digit(10) && item != '_',
+        NomErrorKind::Alpha,
+    )
 }
 
 pub fn hex1(text: &str) -> IResult<&str, &str, ParserError<&str>> {
@@ -177,22 +180,22 @@ mod tests {
     use crate::error::{ErrorKind, Expectation, ParserError};
 
     #[test]
-    fn alpha_or_underscore1_test() {
-        assert_matches!(alpha_or_underscore1("while123123"), Ok(("123123", "while")));
+    fn name_parser_test() {
+        assert_matches!(name_parser("while123123"), Ok(("123123", "while")));
     }
 
     #[test]
-    fn alpha_or_underscore1_underscore_test() {
+    fn name_parser_underscore_test() {
         assert_matches!(
-            alpha_or_underscore1("while_true123123"),
+            name_parser("while_true123123"),
             Ok(("123123", "while_true"))
         );
     }
 
     #[test]
-    fn alpha_or_underscore1_non_alpha_test() {
+    fn name_parser_non_alpha_test() {
         assert_matches!(
-            alpha_or_underscore1("123123"),
+            name_parser("123123"),
             Err(NomErr::Error(ParserError::Base {
                 location,
                 kind,
@@ -206,9 +209,9 @@ mod tests {
     }
 
     #[test]
-    fn alpha_or_underscore1_empty_test() {
+    fn name_parser_empty_test() {
         assert_matches!(
-            alpha_or_underscore1(""),
+            name_parser(""),
             Err(NomErr::Error(ParserError::Base {
                 location,
                 kind,

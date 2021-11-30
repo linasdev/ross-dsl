@@ -12,7 +12,7 @@ use ross_protocol::event::message::MessageValue;
 
 use crate::error::{ErrorKind, Expectation, ParserError};
 use crate::keyword::{false_keyword, true_keyword};
-use crate::parser::{alpha_or_underscore1, dec1, hex1};
+use crate::parser::{dec1, hex1, name_parser};
 use crate::symbol::tilde;
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
@@ -27,7 +27,7 @@ pub fn literal_or_constant<'a>(
     constants: &'a BTreeMap<&str, Literal>,
 ) -> impl FnMut(&str) -> IResult<&str, Literal, ParserError<&str>> + 'a {
     move |text| {
-        if let Ok((input, name)) = alpha_or_underscore1(text) {
+        if let Ok((input, name)) = name_parser(text) {
             if let Some(constant) = constants.get(name) {
                 return Ok((input, constant.clone()));
             }

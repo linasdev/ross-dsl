@@ -7,7 +7,7 @@ use ross_config::filter::*;
 
 use crate::error::{ErrorKind, ParserError};
 use crate::literal::Literal;
-use crate::parser::{alpha_or_underscore1, argument0};
+use crate::parser::{argument0, name_parser};
 use crate::symbol::semicolon;
 use crate::{impl_item_arg1, impl_item_arg2};
 
@@ -16,7 +16,7 @@ pub fn filter<'a>(
 ) -> impl FnMut(&str) -> IResult<&str, Box<dyn Filter>, ParserError<&str>> + 'a {
     move |text| {
         let (input, (name, arguments)) =
-            terminated(pair(alpha_or_underscore1, argument0(constants)), semicolon)(text)?;
+            terminated(pair(name_parser, argument0(constants)), semicolon)(text)?;
 
         impl_item_arg1!(input, name, arguments, ValueEqualToConstFilter);
         impl_item_arg2!(input, name, arguments, StateEqualToConstFilter);

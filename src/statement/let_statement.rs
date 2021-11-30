@@ -6,11 +6,11 @@ use nom::{Err as NomErr, IResult};
 use crate::error::{ErrorKind, Expectation, ParserError};
 use crate::keyword::let_keyword;
 use crate::literal::{literal, Literal};
-use crate::parser::alpha_or_underscore1;
+use crate::parser::name_parser;
 use crate::symbol::{equal_sign, semicolon};
 
 pub fn let_statement(text: &str) -> IResult<&str, (&str, Literal), ParserError<&str>> {
-    let name_parser = delimited(multispace1, alpha_or_underscore1, multispace0);
+    let name_parser = delimited(multispace1, name_parser, multispace0);
     let equal_sign_parser = terminated(equal_sign, multispace0);
     let name_value_pair_parser = separated_pair(name_parser, equal_sign_parser, literal);
     let keyword_parser = preceded(let_keyword, cut(name_value_pair_parser));
