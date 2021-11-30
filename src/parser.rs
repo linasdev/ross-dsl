@@ -28,73 +28,76 @@ macro_rules! prepare_constant {
 pub struct Parser {}
 
 impl Parser {
-    pub fn parse(mut text: &str) -> Result<Config, ParserError<&str>> {
+    pub fn parse<'a, 'b>(text: &'a str) -> Result<Config, ParserError<String>> {
         let mut initial_state = BTreeMap::new();
         let mut constants = BTreeMap::new();
         let mut event_processors = vec![];
 
         Self::prepare_constants(&mut constants);
 
-        while text.len() != 0 {
+        let commentless_text_string = Self::remove_comments(text.to_string());
+        let mut commentless_text = commentless_text_string.as_str();
+
+        while commentless_text.len() != 0 {
             let mut errors = vec![];
 
-            match preceded(multispace0, let_statement)(text) {
+            match preceded(multispace0, let_statement)(commentless_text) {
                 Ok((input, (name, value))) => {
                     let initial_state_index = initial_state.len() as u32;
                     initial_state.insert(initial_state_index, value.try_into()?);
                     constants.insert(name, Literal::U32(initial_state_index));
-                    text = input;
+                    commentless_text = input;
 
                     continue;
                 }
                 Err(NomErr::Error(err)) => errors.push(err),
-                Err(NomErr::Failure(err)) => return Err(err),
+                Err(NomErr::Failure(err)) => return Err(err.into()),
                 _ => {}
             }
 
-            match preceded(multispace0, const_statement)(text) {
+            match preceded(multispace0, const_statement)(commentless_text) {
                 Ok((input, (name, value))) => {
                     constants.insert(name, value);
-                    text = input;
+                    commentless_text = input;
 
                     continue;
                 }
                 Err(NomErr::Error(err)) => errors.push(err),
-                Err(NomErr::Failure(err)) => return Err(err),
+                Err(NomErr::Failure(err)) => return Err(err.into()),
                 _ => {}
             }
 
-            match preceded(multispace0, send_statement(&constants))(text) {
+            match preceded(multispace0, send_statement(&constants))(commentless_text) {
                 Ok((input, event_processor)) => {
                     event_processors.push(event_processor);
-                    text = input;
+                    commentless_text = input;
 
                     continue;
                 }
                 Err(NomErr::Error(err)) => errors.push(err),
-                Err(NomErr::Failure(err)) => return Err(err),
+                Err(NomErr::Failure(err)) => return Err(err.into()),
                 _ => {}
             }
 
-            match preceded(multispace0, do_statement(&constants))(text) {
+            match preceded(multispace0, do_statement(&constants))(commentless_text) {
                 Ok((input, event_processor)) => {
                     event_processors.push(event_processor);
-                    text = input;
+                    commentless_text = input;
 
                     continue;
                 }
                 Err(NomErr::Error(err)) => errors.push(err),
-                Err(NomErr::Failure(err)) => return Err(err),
+                Err(NomErr::Failure(err)) => return Err(err.into()),
                 _ => {}
             }
 
-            if let Ok((input, _)) = multispace1::<_, ParserError<&str>>(text) {
-                text = input;
+            if let Ok((input, _)) = multispace1::<_, ParserError<&str>>(commentless_text) {
+                commentless_text = input;
                 continue;
             }
 
             return Err(ParserError::Base {
-                location: text,
+                location: commentless_text.to_string(),
                 kind: ErrorKind::Expected(Expectation::Something),
                 child: None,
             });
@@ -104,6 +107,20 @@ impl Parser {
             initial_state,
             event_processors,
         })
+    }
+
+    fn remove_comments(text: String) -> String {
+        let mut result = "".to_string();
+
+        for line in text.lines() {
+            if let Some(code_portion) = line.split("//").nth(0) {
+                result += code_portion;
+            }
+
+            result += "\n";
+        }
+
+        result
     }
 
     fn prepare_constants(constants: &mut BTreeMap<&str, Literal>) {

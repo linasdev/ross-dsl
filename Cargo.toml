@@ -39,3 +39,7 @@ path = "examples/multiple_creators.rs"
 [[example]]
 name = "send-if-match"
 path = "examples/send_if_match.rs"
+
+[[example]]
+name = "comment"
+path = "examples/comment.rs"

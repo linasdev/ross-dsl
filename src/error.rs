@@ -214,3 +214,38 @@ impl<I, E: Error + Send + Sync + 'static> FromExternalError<I, E> for ParserErro
         }
     }
 }
+
+impl From<ParserError<&str>> for ParserError<String> {
+    fn from(err: ParserError<&str>) -> ParserError<String> {
+        match err {
+            ParserError::Alt(siblings) => {
+                let mut new_siblings = vec![];
+                new_siblings.reserve(siblings.len());
+    
+                for sibling in siblings {
+                    new_siblings.push(sibling.into());
+                }
+    
+                ParserError::Alt(new_siblings)
+            }
+            ParserError::Base {
+                location,
+                kind,
+                child: Some(child),
+            } => ParserError::Base {
+                location: location.to_string(),
+                kind,
+                child: Some(Box::new((*child).into())),
+            },
+            ParserError::Base {
+                location,
+                kind,
+                child: None,
+            } => ParserError::Base {
+                location: location.to_string(),
+                kind,
+                child: None,
+            },
+        }
+    }
+}
