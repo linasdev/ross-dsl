@@ -1,20 +1,22 @@
-use std::collections::BTreeMap;
 use nom::character::complete::multispace0;
 use nom::combinator::cut;
 use nom::multi::{many0, many1};
 use nom::sequence::{pair, preceded, terminated};
 use nom::IResult;
+use std::collections::BTreeMap;
 
 use ross_config::event_processor::EventProcessor;
 
-use crate::literal::Literal;
 use crate::error::ParserError;
 use crate::keyword::do_keyword;
+use crate::literal::Literal;
 use crate::statement::fire_statement::fire_statement;
 use crate::statement::match_statement::match_statement;
 use crate::symbol::{close_brace, open_brace};
 
-pub fn do_statement<'a>(constants: &'a BTreeMap<&str, Literal>) -> impl FnMut(&str) -> IResult<&str, EventProcessor, ParserError<&str>> + 'a{
+pub fn do_statement<'a>(
+    constants: &'a BTreeMap<&str, Literal>,
+) -> impl FnMut(&str) -> IResult<&str, EventProcessor, ParserError<&str>> + 'a {
     move |text| {
         let content_parser = preceded(
             open_brace,
@@ -25,9 +27,9 @@ pub fn do_statement<'a>(constants: &'a BTreeMap<&str, Literal>) -> impl FnMut(&s
         );
         let keyword_parser = preceded(do_keyword, cut(preceded(multispace0, content_parser)));
         let mut close_brace_parser = terminated(keyword_parser, preceded(multispace0, close_brace));
-    
+
         let (input, (matchers, creators)) = close_brace_parser(text)?;
-    
+
         Ok((input, EventProcessor { matchers, creators }))
     }
 }

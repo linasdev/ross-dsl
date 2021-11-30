@@ -1,8 +1,8 @@
 use nom::character::complete::{multispace0, multispace1};
 use nom::error::ErrorKind as NomErrorKind;
-use nom::multi::{separated_list0};
-use nom::Err as NomErr;
+use nom::multi::separated_list0;
 use nom::sequence::{delimited, preceded, terminated};
+use nom::Err as NomErr;
 use nom::InputTakeAtPosition;
 use nom::{AsChar, IResult};
 use std::collections::BTreeMap;
@@ -44,12 +44,12 @@ impl Parser {
                     initial_state.insert(initial_state_index, value.try_into()?);
                     constants.insert(name, Literal::U32(initial_state_index));
                     text = input;
-    
+
                     continue;
-                },
+                }
                 Err(NomErr::Error(err)) => errors.push(err),
                 Err(NomErr::Failure(err)) => return Err(err),
-                _ => {},
+                _ => {}
             }
 
             match preceded(multispace0, const_statement)(text) {
@@ -58,10 +58,10 @@ impl Parser {
                     text = input;
 
                     continue;
-                },
+                }
                 Err(NomErr::Error(err)) => errors.push(err),
                 Err(NomErr::Failure(err)) => return Err(err),
-                _ => {},
+                _ => {}
             }
 
             match preceded(multispace0, send_statement(&constants))(text) {
@@ -70,10 +70,10 @@ impl Parser {
                     text = input;
 
                     continue;
-                },
+                }
                 Err(NomErr::Error(err)) => errors.push(err),
                 Err(NomErr::Failure(err)) => return Err(err),
-                _ => {},
+                _ => {}
             }
 
             match preceded(multispace0, do_statement(&constants))(text) {
@@ -82,10 +82,10 @@ impl Parser {
                     text = input;
 
                     continue;
-                },
+                }
                 Err(NomErr::Error(err)) => errors.push(err),
                 Err(NomErr::Failure(err)) => return Err(err),
-                _ => {},
+                _ => {}
             }
 
             if let Ok((input, _)) = multispace1::<_, ParserError<&str>>(text) {
@@ -99,7 +99,7 @@ impl Parser {
                 child: None,
             });
         }
-        
+
         Ok(Config {
             initial_state,
             event_processors,
@@ -109,7 +109,11 @@ impl Parser {
     fn prepare_constants(constants: &mut BTreeMap<&str, Literal>) {
         prepare_constant!(BOOTLOADER_HELLO_EVENT_CODE, constants, Literal::U16);
         prepare_constant!(PROGRAMMER_HELLO_EVENT_CODE, constants, Literal::U16);
-        prepare_constant!(PROGRAMMER_START_FIRMWARE_UPGRADE_EVENT_CODE, constants, Literal::U16);
+        prepare_constant!(
+            PROGRAMMER_START_FIRMWARE_UPGRADE_EVENT_CODE,
+            constants,
+            Literal::U16
+        );
         prepare_constant!(ACK_EVENT_CODE, constants, Literal::U16);
         prepare_constant!(DATA_EVENT_CODE, constants, Literal::U16);
         prepare_constant!(CONFIGURATOR_HELLO_EVENT_CODE, constants, Literal::U16);
@@ -117,8 +121,16 @@ impl Parser {
         prepare_constant!(BUTTON_PRESSED_EVENT_CODE, constants, Literal::U16);
         prepare_constant!(BUTTON_RELEASED_EVENT_CODE, constants, Literal::U16);
         prepare_constant!(INTERNAL_SYSTEM_TICK_EVENT_CODE, constants, Literal::U16);
-        prepare_constant!(PROGRAMMER_START_CONFIG_UPGRADE_EVENT_CODE, constants, Literal::U16);
-        prepare_constant!(PROGRAMMER_SET_DEVICE_ADDRESS_EVENT_CODE, constants, Literal::U16);
+        prepare_constant!(
+            PROGRAMMER_START_CONFIG_UPGRADE_EVENT_CODE,
+            constants,
+            Literal::U16
+        );
+        prepare_constant!(
+            PROGRAMMER_SET_DEVICE_ADDRESS_EVENT_CODE,
+            constants,
+            Literal::U16
+        );
         prepare_constant!(MESSAGE_EVENT_CODE, constants, Literal::U16);
     }
 }
@@ -141,11 +153,16 @@ pub fn dec1(text: &str) -> IResult<&str, &str, ParserError<&str>> {
     )
 }
 
-pub fn argument0<'a>(constants: &'a BTreeMap<&str, Literal>) -> impl FnMut(&str) -> IResult<&str, Vec<Literal>, ParserError<&str>> + 'a {
+pub fn argument0<'a>(
+    constants: &'a BTreeMap<&str, Literal>,
+) -> impl FnMut(&str) -> IResult<&str, Vec<Literal>, ParserError<&str>> + 'a {
     move |text| {
         delimited(
             terminated(open_parenthesis, multispace0),
-            separated_list0(comma, delimited(multispace0, literal_or_constant(constants), multispace0)),
+            separated_list0(
+                comma,
+                delimited(multispace0, literal_or_constant(constants), multispace0),
+            ),
             close_parenthesis,
         )(text)
     }

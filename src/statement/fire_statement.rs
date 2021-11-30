@@ -1,9 +1,9 @@
-use std::collections::BTreeMap;
 use nom::branch::alt;
 use nom::character::complete::{multispace0, multispace1};
 use nom::combinator::cut;
 use nom::sequence::{delimited, pair, preceded, terminated};
 use nom::IResult;
+use std::collections::BTreeMap;
 
 use ross_config::creator::Creator;
 use ross_config::extractor::{Extractor, NoneExtractor};
@@ -11,23 +11,26 @@ use ross_config::extractor::{Extractor, NoneExtractor};
 use crate::error::ParserError;
 use crate::extractor::extractor;
 use crate::keyword::fire_keyword;
-use crate::producer::producer;
 use crate::literal::Literal;
+use crate::producer::producer;
 use crate::symbol::{close_brace, open_brace};
 
-pub fn fire_statement<'a>(constants: &'a BTreeMap<&str, Literal>) -> impl FnMut(&str) -> IResult<&str, Creator, ParserError<&str>> + 'a {
+pub fn fire_statement<'a>(
+    constants: &'a BTreeMap<&str, Literal>,
+) -> impl FnMut(&str) -> IResult<&str, Creator, ParserError<&str>> + 'a {
     move |text| {
-        let extractor_parser = alt((delimited(multispace0, extractor(constants), multispace0), |input| {
-            Ok((input, Box::new(NoneExtractor::new()) as Box<dyn Extractor>))
-        }));
-    
+        let extractor_parser = alt((
+            delimited(multispace0, extractor(constants), multispace0),
+            |input| Ok((input, Box::new(NoneExtractor::new()) as Box<dyn Extractor>)),
+        ));
+
         let producer_parser = delimited(multispace0, producer(constants), multispace0);
         let content_parser = preceded(open_brace, pair(extractor_parser, producer_parser));
         let keyword_parser = preceded(fire_keyword, cut(preceded(multispace1, content_parser)));
         let mut close_brace_parser = terminated(keyword_parser, preceded(multispace0, close_brace));
-    
+
         let (input, (extractor, producer)) = close_brace_parser(text)?;
-    
+
         Ok((
             input,
             Creator {

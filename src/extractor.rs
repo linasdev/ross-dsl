@@ -1,20 +1,22 @@
-use std::collections::BTreeMap;
 use nom::sequence::{pair, terminated};
 use nom::{Err, IResult};
+use std::collections::BTreeMap;
 
 use ross_config::extractor::*;
 
-use crate::literal::Literal;
 use crate::error::{ErrorKind, ParserError};
 use crate::impl_item_arg0;
+use crate::literal::Literal;
 use crate::parser::{alpha_or_underscore1, argument0};
 use crate::symbol::semicolon;
 
-pub fn extractor<'a>(constants: &'a BTreeMap<&str, Literal>) -> impl FnMut(&str) -> IResult<&str, Box<dyn Extractor>, ParserError<&str>> +'a {
+pub fn extractor<'a>(
+    constants: &'a BTreeMap<&str, Literal>,
+) -> impl FnMut(&str) -> IResult<&str, Box<dyn Extractor>, ParserError<&str>> + 'a {
     move |text| {
         let (input, (name, arguments)) =
             terminated(pair(alpha_or_underscore1, argument0(constants)), semicolon)(text)?;
-    
+
         impl_item_arg0!(input, name, arguments, NoneExtractor);
         impl_item_arg0!(input, name, arguments, PacketExtractor);
         impl_item_arg0!(input, name, arguments, EventCodeExtractor);
@@ -22,7 +24,7 @@ pub fn extractor<'a>(constants: &'a BTreeMap<&str, Literal>) -> impl FnMut(&str)
         impl_item_arg0!(input, name, arguments, MessageCodeExtractor);
         impl_item_arg0!(input, name, arguments, MessageValueExtractor);
         impl_item_arg0!(input, name, arguments, ButtonIndexExtractor);
-    
+
         Err(Err::Error(ParserError::Base {
             location: name,
             kind: ErrorKind::UnknownExtractor,
