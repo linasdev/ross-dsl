@@ -1,30 +1,34 @@
+use std::collections::BTreeMap;
 use nom::sequence::{pair, terminated};
 use nom::{Err, IResult};
 
 use ross_config::extractor::*;
 
+use crate::literal::Literal;
 use crate::error::{ErrorKind, ParserError};
 use crate::impl_item_arg0;
 use crate::parser::{alpha_or_underscore1, argument0};
 use crate::symbol::semicolon;
 
-pub fn extractor(text: &str) -> IResult<&str, Box<dyn Extractor>, ParserError<&str>> {
-    let (input, (name, arguments)) =
-        terminated(pair(alpha_or_underscore1, argument0), semicolon)(text)?;
-
-    impl_item_arg0!(input, name, arguments, NoneExtractor);
-    impl_item_arg0!(input, name, arguments, PacketExtractor);
-    impl_item_arg0!(input, name, arguments, EventCodeExtractor);
-    impl_item_arg0!(input, name, arguments, EventProducerAddressExtractor);
-    impl_item_arg0!(input, name, arguments, MessageCodeExtractor);
-    impl_item_arg0!(input, name, arguments, MessageValueExtractor);
-    impl_item_arg0!(input, name, arguments, ButtonIndexExtractor);
-
-    Err(Err::Error(ParserError::Base {
-        location: name,
-        kind: ErrorKind::UnknownExtractor,
-        child: None,
-    }))
+pub fn extractor<'a>(constants: &'a BTreeMap<&str, Literal>) -> impl FnMut(&str) -> IResult<&str, Box<dyn Extractor>, ParserError<&str>> +'a {
+    move |text| {
+        let (input, (name, arguments)) =
+            terminated(pair(alpha_or_underscore1, argument0(constants)), semicolon)(text)?;
+    
+        impl_item_arg0!(input, name, arguments, NoneExtractor);
+        impl_item_arg0!(input, name, arguments, PacketExtractor);
+        impl_item_arg0!(input, name, arguments, EventCodeExtractor);
+        impl_item_arg0!(input, name, arguments, EventProducerAddressExtractor);
+        impl_item_arg0!(input, name, arguments, MessageCodeExtractor);
+        impl_item_arg0!(input, name, arguments, MessageValueExtractor);
+        impl_item_arg0!(input, name, arguments, ButtonIndexExtractor);
+    
+        Err(Err::Error(ParserError::Base {
+            location: name,
+            kind: ErrorKind::UnknownExtractor,
+            child: None,
+        }))
+    }
 }
 
 #[cfg(test)]

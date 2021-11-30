@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use nom::character::complete::multispace0;
 use nom::combinator::cut;
 use nom::multi::{many0, many1};
@@ -6,26 +7,29 @@ use nom::IResult;
 
 use ross_config::event_processor::EventProcessor;
 
+use crate::literal::Literal;
 use crate::error::ParserError;
 use crate::keyword::do_keyword;
 use crate::statement::fire_statement::fire_statement;
 use crate::statement::match_statement::match_statement;
 use crate::symbol::{close_brace, open_brace};
 
-pub fn do_statement(text: &str) -> IResult<&str, EventProcessor, ParserError<&str>> {
-    let content_parser = preceded(
-        open_brace,
-        pair(
-            many0(preceded(multispace0, match_statement)),
-            many1(preceded(multispace0, fire_statement)),
-        ),
-    );
-    let keyword_parser = preceded(do_keyword, cut(preceded(multispace0, content_parser)));
-    let mut close_brace_parser = terminated(keyword_parser, preceded(multispace0, close_brace));
-
-    let (input, (matchers, creators)) = close_brace_parser(text)?;
-
-    Ok((input, EventProcessor { matchers, creators }))
+pub fn do_statement<'a>(constants: &'a BTreeMap<&str, Literal>) -> impl FnMut(&str) -> IResult<&str, EventProcessor, ParserError<&str>> + 'a{
+    move |text| {
+        let content_parser = preceded(
+            open_brace,
+            pair(
+                many0(preceded(multispace0, match_statement(constants))),
+                many1(preceded(multispace0, fire_statement(constants))),
+            ),
+        );
+        let keyword_parser = preceded(do_keyword, cut(preceded(multispace0, content_parser)));
+        let mut close_brace_parser = terminated(keyword_parser, preceded(multispace0, close_brace));
+    
+        let (input, (matchers, creators)) = close_brace_parser(text)?;
+    
+        Ok((input, EventProcessor { matchers, creators }))
+    }
 }
 
 #[cfg(test)]
@@ -47,7 +51,8 @@ mod tests {
 
     #[test]
     fn provided_extractor_test() {
-        let (input, event_producer) = do_statement(
+        let constants = BTreeMap::new();
+        let (input, event_producer) = do_statement(&constants)(
             "do {
                 match event 0xabab~u16;
                 match producer 0x0123~u16;
@@ -96,8 +101,9 @@ mod tests {
 
     #[test]
     fn missing_close_brace_test() {
+        let constants = BTreeMap::new();
         assert_matches!(
-            do_statement(
+            do_statement(&constants)(
                 "do {
                     match event 0xabab~u16;
                     match producer 0x0123~u16;
@@ -116,8 +122,9 @@ mod tests {
 
     #[test]
     fn invalid_literal_test() {
+        let constants = BTreeMap::new();
         assert_matches!(
-            do_statement(
+            do_statement(&constants)(
                 "do {
                     match event 0xabab~u16;
                     match producer 0x0123~u16;
@@ -137,8 +144,9 @@ mod tests {
 
     #[test]
     fn no_fire_statement_test() {
+        let constants = BTreeMap::new();
         assert_matches!(
-            do_statement(
+            do_statement(&constants)(
                 "do {
                     match event 0xabab~u16;
                     match producer 0x0123~u16;",

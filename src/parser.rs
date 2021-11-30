@@ -1,4 +1,4 @@
-use nom::character::complete::multispace0;
+use nom::character::complete::{multispace0, multispace1};
 use nom::error::ErrorKind as NomErrorKind;
 use nom::multi::{separated_list0};
 use nom::Err as NomErr;
@@ -9,14 +9,21 @@ use std::collections::BTreeMap;
 use std::convert::TryInto;
 
 use ross_config::config::Config;
+use ross_protocol::event::event_code::*;
 
 use crate::error::{ErrorKind, Expectation, ParserError};
-use crate::literal::{literal, Literal};
+use crate::literal::{literal_or_constant, Literal};
 use crate::statement::const_statement::const_statement;
 use crate::statement::do_statement::do_statement;
 use crate::statement::let_statement::let_statement;
 use crate::statement::send_statement::send_statement;
 use crate::symbol::{close_parenthesis, comma, open_parenthesis};
+
+macro_rules! prepare_constant {
+    ($name:expr, $constants:expr, $constant_type:path) => {
+        $constants.insert(stringify!($name), $constant_type($name));
+    };
+}
 
 pub struct Parser {}
 
@@ -26,9 +33,13 @@ impl Parser {
         let mut constants = BTreeMap::new();
         let mut event_processors = vec![];
 
+        Self::prepare_constants(&mut constants);
+
         while text.len() != 0 {
             let mut errors = vec![];
-            
+
+            println!("start\n{:?}\n{:?}\n{:?}\nend\n\n", initial_state, constants, event_processors);
+
             match preceded(multispace0, let_statement)(text) {
                 Ok((input, (name, value))) => {
                     let initial_state_index = initial_state.len() as u32;
@@ -55,7 +66,7 @@ impl Parser {
                 _ => {},
             }
 
-            match preceded(multispace0, send_statement)(text) {
+            match preceded(multispace0, send_statement(&constants))(text) {
                 Ok((input, event_processor)) => {
                     event_processors.push(event_processor);
                     text = input;
@@ -67,7 +78,7 @@ impl Parser {
                 _ => {},
             }
 
-            match preceded(multispace0, do_statement)(text) {
+            match preceded(multispace0, do_statement(&constants))(text) {
                 Ok((input, event_processor)) => {
                     event_processors.push(event_processor);
                     text = input;
@@ -77,6 +88,11 @@ impl Parser {
                 Err(NomErr::Error(err)) => errors.push(err),
                 Err(NomErr::Failure(err)) => return Err(err),
                 _ => {},
+            }
+
+            if let Ok((input, _)) = multispace1::<_, ParserError<&str>>(text) {
+                text = input;
+                continue;
             }
 
             return Err(ParserError::Base {
@@ -90,6 +106,22 @@ impl Parser {
             initial_state,
             event_processors,
         })
+    }
+
+    fn prepare_constants(constants: &mut BTreeMap<&str, Literal>) {
+        prepare_constant!(BOOTLOADER_HELLO_EVENT_CODE, constants, Literal::U16);
+        prepare_constant!(PROGRAMMER_HELLO_EVENT_CODE, constants, Literal::U16);
+        prepare_constant!(PROGRAMMER_START_FIRMWARE_UPGRADE_EVENT_CODE, constants, Literal::U16);
+        prepare_constant!(ACK_EVENT_CODE, constants, Literal::U16);
+        prepare_constant!(DATA_EVENT_CODE, constants, Literal::U16);
+        prepare_constant!(CONFIGURATOR_HELLO_EVENT_CODE, constants, Literal::U16);
+        prepare_constant!(BCM_CHANGE_BRIGHTNESS_EVENT_CODE, constants, Literal::U16);
+        prepare_constant!(BUTTON_PRESSED_EVENT_CODE, constants, Literal::U16);
+        prepare_constant!(BUTTON_RELEASED_EVENT_CODE, constants, Literal::U16);
+        prepare_constant!(INTERNAL_SYSTEM_TICK_EVENT_CODE, constants, Literal::U16);
+        prepare_constant!(PROGRAMMER_START_CONFIG_UPGRADE_EVENT_CODE, constants, Literal::U16);
+        prepare_constant!(PROGRAMMER_SET_DEVICE_ADDRESS_EVENT_CODE, constants, Literal::U16);
+        prepare_constant!(MESSAGE_EVENT_CODE, constants, Literal::U16);
     }
 }
 
@@ -111,12 +143,14 @@ pub fn dec1(text: &str) -> IResult<&str, &str, ParserError<&str>> {
     )
 }
 
-pub fn argument0(text: &str) -> IResult<&str, Vec<Literal>, ParserError<&str>> {
-    delimited(
-        terminated(open_parenthesis, multispace0),
-        separated_list0(comma, delimited(multispace0, literal, multispace0)),
-        close_parenthesis,
-    )(text)
+pub fn argument0<'a>(constants: &'a BTreeMap<&str, Literal>) -> impl FnMut(&str) -> IResult<&str, Vec<Literal>, ParserError<&str>> + 'a {
+    move |text| {
+        delimited(
+            terminated(open_parenthesis, multispace0),
+            separated_list0(comma, delimited(multispace0, literal_or_constant(constants), multispace0)),
+            close_parenthesis,
+        )(text)
+    }
 }
 
 #[cfg(test)]
@@ -253,8 +287,9 @@ mod tests {
 
     #[test]
     fn argument0_two_arguments_test() {
+        let constants = BTreeMap::new();
         assert_matches!(
-            argument0("(0xab~u16, false)"),
+            argument0(&constants)("(0xab~u16, false)"),
             Ok((input, arguments)) => {
                 assert_eq!(input, "");
                 assert_eq!(arguments, vec![Literal::U16(0xab), Literal::Bool(false)]);
@@ -264,8 +299,9 @@ mod tests {
 
     #[test]
     fn argument0_one_argument_test() {
+        let constants = BTreeMap::new();
         assert_matches!(
-            argument0("(0xab~u16)"),
+            argument0(&constants)("(0xab~u16)"),
             Ok((input, arguments)) => {
                 assert_eq!(input, "");
                 assert_eq!(arguments, vec![Literal::U16(0xab)]);
@@ -275,8 +311,9 @@ mod tests {
 
     #[test]
     fn argument0_no_arguments_test() {
+        let constants = BTreeMap::new();
         assert_matches!(
-            argument0("(  )"),
+            argument0(&constants)("(  )"),
             Ok((input, arguments)) => {
                 assert_eq!(input, "");
                 assert_eq!(arguments, vec![]);
@@ -286,8 +323,9 @@ mod tests {
 
     #[test]
     fn argument0_empty_test() {
+        let constants = BTreeMap::new();
         assert_matches!(
-            argument0(""),
+            argument0(&constants)(""),
             Err(NomErr::Error(ParserError::Base {
                 location,
                 kind,

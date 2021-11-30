@@ -1,34 +1,38 @@
+use std::collections::BTreeMap;
 use nom::sequence::{pair, terminated};
 use nom::{Err, IResult};
 use std::convert::TryInto;
 
 use ross_config::filter::*;
 
+use crate::literal::Literal;
 use crate::error::{ErrorKind, ParserError};
 use crate::parser::{alpha_or_underscore1, argument0};
 use crate::symbol::semicolon;
 use crate::{impl_item_arg1, impl_item_arg2};
 
-pub fn filter(text: &str) -> IResult<&str, Box<dyn Filter>, ParserError<&str>> {
-    let (input, (name, arguments)) =
-        terminated(pair(alpha_or_underscore1, argument0), semicolon)(text)?;
-
-    impl_item_arg1!(input, name, arguments, ValueEqualToConstFilter);
-    impl_item_arg2!(input, name, arguments, StateEqualToConstFilter);
-    impl_item_arg1!(input, name, arguments, StateEqualToValueFilter);
-    impl_item_arg2!(input, name, arguments, IncrementStateByConstFilter);
-    impl_item_arg1!(input, name, arguments, IncrementStateByValueFilter);
-    impl_item_arg2!(input, name, arguments, DecrementStateByConstFilter);
-    impl_item_arg1!(input, name, arguments, DecrementStateByValueFilter);
-    impl_item_arg2!(input, name, arguments, SetStateToConstFilter);
-    impl_item_arg1!(input, name, arguments, SetStateToValueFilter);
-    impl_item_arg1!(input, name, arguments, FlipStateFilter);
-
-    Err(Err::Error(ParserError::Base {
-        location: name,
-        kind: ErrorKind::UnknownFilter,
-        child: None,
-    }))
+pub fn filter<'a>(constants: &'a BTreeMap<&str, Literal>) -> impl FnMut(&str) -> IResult<&str, Box<dyn Filter>, ParserError<&str>> +'a {
+    move |text| {
+        let (input, (name, arguments)) =
+            terminated(pair(alpha_or_underscore1, argument0(constants)), semicolon)(text)?;
+    
+        impl_item_arg1!(input, name, arguments, ValueEqualToConstFilter);
+        impl_item_arg2!(input, name, arguments, StateEqualToConstFilter);
+        impl_item_arg1!(input, name, arguments, StateEqualToValueFilter);
+        impl_item_arg2!(input, name, arguments, IncrementStateByConstFilter);
+        impl_item_arg1!(input, name, arguments, IncrementStateByValueFilter);
+        impl_item_arg2!(input, name, arguments, DecrementStateByConstFilter);
+        impl_item_arg1!(input, name, arguments, DecrementStateByValueFilter);
+        impl_item_arg2!(input, name, arguments, SetStateToConstFilter);
+        impl_item_arg1!(input, name, arguments, SetStateToValueFilter);
+        impl_item_arg1!(input, name, arguments, FlipStateFilter);
+    
+        Err(Err::Error(ParserError::Base {
+            location: name,
+            kind: ErrorKind::UnknownFilter,
+            child: None,
+        }))
+    }
 }
 
 #[cfg(test)]

@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use nom::branch::alt;
 use nom::character::complete::alphanumeric1;
 use nom::combinator::success;
@@ -11,7 +12,7 @@ use ross_protocol::event::message::MessageValue;
 
 use crate::error::{ErrorKind, Expectation, ParserError};
 use crate::keyword::{false_keyword, true_keyword};
-use crate::parser::{dec1, hex1};
+use crate::parser::{dec1, hex1, alpha_or_underscore1};
 use crate::symbol::tilde;
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
@@ -20,6 +21,18 @@ pub enum Literal {
     U16(u16),
     U32(u32),
     Bool(bool),
+}
+
+pub fn literal_or_constant<'a>(constants: &'a BTreeMap<&str, Literal>) -> impl FnMut(&str) -> IResult<&str, Literal, ParserError<&str>> + 'a {
+    move |text| {
+        if let Ok((input, name)) = alpha_or_underscore1(text) {
+            if let Some(constant) = constants.get(name) {
+                return Ok((input, constant.clone()));
+            }
+        }
+
+        literal(text)
+    }
 }
 
 pub fn literal(text: &str) -> IResult<&str, Literal, ParserError<&str>> {

@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use nom::branch::alt;
 use nom::character::complete::{multispace0, multispace1};
 use nom::combinator::{cut, map, map_res};
@@ -15,74 +16,75 @@ use ross_config::Value;
 
 use crate::error::ParserError;
 use crate::keyword::{from_keyword, if_keyword, send_keyword, to_keyword};
-use crate::literal::literal;
+use crate::literal::{Literal, literal_or_constant};
 use crate::statement::match_statement::match_statement;
 use crate::symbol::semicolon;
 
-pub fn send_statement(text: &str) -> IResult<&str, EventProcessor, ParserError<&str>> {
-    let if_match_parser = {
-        let additional_matcher_parser = cut(preceded(multispace1, match_statement));
-        let pair_parser = separated_pair(
-            terminated(base_syntax_parser, multispace1),
-            if_keyword,
-            additional_matcher_parser,
-        );
-
-        map(pair_parser, |((mut matchers, creators), matcher)| {
-            matchers.push(matcher);
-            (matchers, creators)
-        })
-    };
-
-    let normal_syntax_parser = terminated(base_syntax_parser, preceded(multispace0, semicolon));
-
-    let (input, (matchers, creators)) = alt((if_match_parser, normal_syntax_parser))(text)?;
-
-    Ok((input, EventProcessor { matchers, creators }))
+pub fn send_statement<'a>(constants: &'a BTreeMap<&str, Literal>) -> impl FnMut(&str) -> IResult<&str, EventProcessor, ParserError<&str>> + 'a {
+    move |text| {
+        let if_match_parser = {
+            let additional_matcher_parser = cut(preceded(multispace1, match_statement(constants)));
+            let pair_parser = separated_pair(
+                terminated(base_syntax_parser(constants), multispace1),
+                if_keyword,
+                additional_matcher_parser,
+            );
+    
+            map(pair_parser, |((mut matchers, creators), matcher)| {
+                matchers.push(matcher);
+                (matchers, creators)
+            })
+        };
+    
+        let normal_syntax_parser = terminated(base_syntax_parser(constants), preceded(multispace0, semicolon));
+    
+        let (input, (matchers, creators)) = alt((if_match_parser, normal_syntax_parser))(text)?;
+    
+        Ok((input, EventProcessor { matchers, creators }))    }
 }
 
-fn base_syntax_parser(
-    text: &str,
-) -> IResult<&str, (Vec<Matcher>, Vec<Creator>), ParserError<&str>> {
-    let tuple_parser = tuple((
-        literal,
-        multispace1,
-        from_keyword,
-        multispace1,
-        literal,
-        multispace1,
-        to_keyword,
-        multispace1,
-        literal,
-    ));
-
-    let content_parser = map_res::<_, _, _, _, ParserError<&str>, _, _>(
-        tuple_parser,
-        |(event_code, _, _, _, from_address, _, _, _, to_address)| {
-            let event_code = event_code.try_into()?;
-            let from_address = from_address.try_into()?;
-            let to_address = to_address.try_into()?;
-
-            let event_matcher = Matcher {
-                extractor: Box::new(EventCodeExtractor::new()),
-                filter: Box::new(ValueEqualToConstFilter::new(Value::U16(event_code))),
-            };
-
-            let producer_matcher = Matcher {
-                extractor: Box::new(EventProducerAddressExtractor::new()),
-                filter: Box::new(ValueEqualToConstFilter::new(Value::U16(from_address))),
-            };
-
-            let packet_creator = Creator {
-                extractor: Box::new(PacketExtractor::new()),
-                producer: Box::new(PacketProducer::new(to_address)),
-            };
-
-            Ok((vec![event_matcher, producer_matcher], vec![packet_creator]))
-        },
-    );
-
-    preceded(send_keyword, cut(preceded(multispace1, content_parser)))(text)
+fn base_syntax_parser<'a>(constants: &'a BTreeMap<&str, Literal>) -> impl FnMut(&str) -> IResult<&str, (Vec<Matcher>, Vec<Creator>), ParserError<&str>> + 'a {
+    move |text| {
+        let tuple_parser = tuple((
+            literal_or_constant(constants),
+            multispace1,
+            from_keyword,
+            multispace1,
+            literal_or_constant(constants),
+            multispace1,
+            to_keyword,
+            multispace1,
+            literal_or_constant(constants),
+        ));
+    
+        let content_parser = map_res::<_, _, _, _, ParserError<&str>, _, _>(
+            tuple_parser,
+            |(event_code, _, _, _, from_address, _, _, _, to_address)| {
+                let event_code = event_code.try_into()?;
+                let from_address = from_address.try_into()?;
+                let to_address = to_address.try_into()?;
+    
+                let event_matcher = Matcher {
+                    extractor: Box::new(EventCodeExtractor::new()),
+                    filter: Box::new(ValueEqualToConstFilter::new(Value::U16(event_code))),
+                };
+    
+                let producer_matcher = Matcher {
+                    extractor: Box::new(EventProducerAddressExtractor::new()),
+                    filter: Box::new(ValueEqualToConstFilter::new(Value::U16(from_address))),
+                };
+    
+                let packet_creator = Creator {
+                    extractor: Box::new(PacketExtractor::new()),
+                    producer: Box::new(PacketProducer::new(to_address)),
+                };
+    
+                Ok((vec![event_matcher, producer_matcher], vec![packet_creator]))
+            },
+        );
+    
+        preceded(send_keyword, cut(preceded(multispace1, content_parser)))(text)
+    }
 }
 
 #[cfg(test)]
@@ -97,8 +99,9 @@ mod tests {
 
     #[test]
     fn normal_syntax_test() {
+        let constants = BTreeMap::new();
         let (input, event_processor) =
-            send_statement("send 0xabab~u16 from 0x0123~u16 to 0xffff~u16;input").unwrap();
+            send_statement(&constants)("send 0xabab~u16 from 0x0123~u16 to 0xffff~u16;input").unwrap();
 
         assert_eq!(input, "input");
 
@@ -137,8 +140,9 @@ mod tests {
 
     #[test]
     fn normal_syntax_missing_semicolon_test() {
+        let constants = BTreeMap::new();
         assert_matches!(
-            send_statement("send 0xabab~u16 from 0x0123~u16 to 0xffff~u16"),
+            send_statement(&constants)("send 0xabab~u16 from 0x0123~u16 to 0xffff~u16"),
             Err(NomErr::Error(ParserError::Base {
                 location: _,
                 kind: ErrorKind::Nom(NomErrorKind::Alt),
@@ -149,8 +153,9 @@ mod tests {
 
     #[test]
     fn normal_syntax_missing_from_keyword_test() {
+        let constants = BTreeMap::new();
         assert_matches!(
-            send_statement("send 0xabab~u16 0x0123~u16 to 0xffff~u16;"),
+            send_statement(&constants)("send 0xabab~u16 0x0123~u16 to 0xffff~u16;"),
             Err(NomErr::Failure(ParserError::Base {
                 location: _,
                 kind: ErrorKind::Expected(Expectation::Keyword("from")),
@@ -161,8 +166,9 @@ mod tests {
 
     #[test]
     fn normal_syntax_missing_to_keyword_test() {
+        let constants = BTreeMap::new();
         assert_matches!(
-            send_statement("send 0xabab~u16 from 0x0123~u16 0xffff~u16;"),
+            send_statement(&constants)("send 0xabab~u16 from 0x0123~u16 0xffff~u16;"),
             Err(NomErr::Failure(ParserError::Base {
                 location: _,
                 kind: ErrorKind::Expected(Expectation::Keyword("to")),
@@ -173,8 +179,9 @@ mod tests {
 
     #[test]
     fn normal_syntax_empty_test() {
+        let constants = BTreeMap::new();
         assert_matches!(
-            send_statement(""),
+            send_statement(&constants)(""),
             Err(NomErr::Error(ParserError::Base {
                 location: _,
                 kind: ErrorKind::Nom(NomErrorKind::Alt),
@@ -185,7 +192,8 @@ mod tests {
 
     #[test]
     fn if_match_event_test() {
-        let (input, event_processor) = send_statement(
+        let constants = BTreeMap::new();
+        let (input, event_processor) = send_statement(&constants)(
             "send 0xabab~u16 from 0x0123~u16 to 0xffff~u16 if match event 0xbaba~u16;input",
         )
         .unwrap();
@@ -235,8 +243,9 @@ mod tests {
 
     #[test]
     fn if_match_event_missing_semicolon_test() {
+        let constants = BTreeMap::new();
         assert_matches!(
-            send_statement(
+            send_statement(&constants)(
                 "send 0xabab~u16 from 0x0123~u16 to 0xffff~u16 if match event 0xbaba~u16",
             ),
             Err(NomErr::Failure(ParserError::Base {
@@ -249,8 +258,9 @@ mod tests {
 
     #[test]
     fn if_match_event_missing_from_keyword_test() {
+        let constants = BTreeMap::new();
         assert_matches!(
-            send_statement("send 0xabab~u16 0x0123~u16 to 0xffff~u16 if match event 0xbaba~u16;"),
+            send_statement(&constants)("send 0xabab~u16 0x0123~u16 to 0xffff~u16 if match event 0xbaba~u16;"),
             Err(NomErr::Failure(ParserError::Base {
                 location: _,
                 kind: ErrorKind::Expected(Expectation::Keyword("from")),
@@ -261,8 +271,9 @@ mod tests {
 
     #[test]
     fn if_match_event_missing_to_keyword_test() {
+        let constants = BTreeMap::new();
         assert_matches!(
-            send_statement("send 0xabab~u16 from 0x0123~u16 0xffff~u16 if match event 0xbaba~u16;",),
+            send_statement(&constants)("send 0xabab~u16 from 0x0123~u16 0xffff~u16 if match event 0xbaba~u16;",),
             Err(NomErr::Failure(ParserError::Base {
                 location: _,
                 kind: ErrorKind::Expected(Expectation::Keyword("to")),

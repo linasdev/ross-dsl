@@ -131,7 +131,8 @@ macro_rules! impl_tests_for_item_arg0 {
 
             #[test]
             fn test() {
-                let (input, item) = $item(concat!(stringify!($item_type), "( );input")).unwrap();
+                let constants = BTreeMap::new();
+                let (input, item) = $item(&constants)(concat!(stringify!($item_type), "( );input")).unwrap();
 
                 assert_eq!(input, "input");
                 assert_eq!(format!("{:?}", item), format!("{:?}", <$item_type>::new()));
@@ -139,8 +140,9 @@ macro_rules! impl_tests_for_item_arg0 {
 
             #[test]
             fn missing_semicolon_test() {
+                let constants = BTreeMap::new();
                 assert_matches!(
-                    $item(concat!(stringify!($item_type), "( )input")),
+                    $item(&constants)(concat!(stringify!($item_type), "( )input")),
                     Err(NomErr::Error(ParserError::Base {
                         location,
                         kind,
@@ -156,8 +158,9 @@ macro_rules! impl_tests_for_item_arg0 {
             #[test]
 
             fn too_many_arguments_test() {
+                let constants = BTreeMap::new();
                 assert_matches!(
-                    $item(concat!(stringify!($item_type), "(false);input")),
+                    $item(&constants)(concat!(stringify!($item_type), "(false);input")),
                     Err(NomErr::Error(ParserError::Base {
                         location,
                         kind,
@@ -186,7 +189,8 @@ macro_rules! impl_tests_for_item_arg1 {
 
             #[test]
             fn test() {
-                let (input, item) = $item(concat!(
+                let constants = BTreeMap::new();
+                let (input, item) = $item(&constants)(concat!(
                     stringify!($item_type),
                     "(",
                     $argument0,
@@ -203,8 +207,9 @@ macro_rules! impl_tests_for_item_arg1 {
 
             #[test]
             fn missing_semicolon_test() {
+                let constants = BTreeMap::new();
                 assert_matches!(
-                    $item(concat!(stringify!($item_type), "(", $argument0, ")input")),
+                    $item(&constants)(concat!(stringify!($item_type), "(", $argument0, ")input")),
                     Err(NomErr::Error(ParserError::Base {
                         location,
                         kind,
@@ -220,8 +225,9 @@ macro_rules! impl_tests_for_item_arg1 {
             #[test]
 
             fn too_few_arguments_test() {
+                let constants = BTreeMap::new();
                 assert_matches!(
-                    $item(concat!(stringify!($item_type), "();input")),
+                    $item(&constants)(concat!(stringify!($item_type), "();input")),
                     Err(NomErr::Error(ParserError::Base {
                         location,
                         kind,
@@ -237,8 +243,9 @@ macro_rules! impl_tests_for_item_arg1 {
             #[test]
 
             fn too_many_arguments_test() {
+                let constants = BTreeMap::new();
                 assert_matches!(
-                    $item(concat!(stringify!($item_type), "(false, false);input")),
+                    $item(&constants)(concat!(stringify!($item_type), "(false, false);input")),
                     Err(NomErr::Error(ParserError::Base {
                         location,
                         kind,
@@ -267,7 +274,8 @@ macro_rules! impl_tests_for_item_arg2 {
 
             #[test]
             fn test() {
-                let (input, item) = $item(concat!(
+                let constants = BTreeMap::new();
+                let (input, item) = $item(&constants)(concat!(
                     stringify!($item_type),
                     "(",
                     $argument0,
@@ -289,8 +297,9 @@ macro_rules! impl_tests_for_item_arg2 {
 
             #[test]
             fn missing_semicolon_test() {
+                let constants = BTreeMap::new();
                 assert_matches!(
-                    $item(concat!(
+                    $item(&constants)(concat!(
                         stringify!($item_type),
                         "( ",
                         $argument0,
@@ -313,8 +322,9 @@ macro_rules! impl_tests_for_item_arg2 {
             #[test]
 
             fn too_few_arguments_test() {
+                let constants = BTreeMap::new();
                 assert_matches!(
-                    $item(concat!(stringify!($item_type), "(false);input")),
+                    $item(&constants)(concat!(stringify!($item_type), "(false);input")),
                     Err(NomErr::Error(ParserError::Base {
                         location,
                         kind,
@@ -330,8 +340,9 @@ macro_rules! impl_tests_for_item_arg2 {
             #[test]
 
             fn too_many_arguments_test() {
+                let constants = BTreeMap::new();
                 assert_matches!(
-                    $item(concat!(stringify!($item_type), "(false, false, false);input")),
+                    $item(&constants)(concat!(stringify!($item_type), "(false, false, false);input")),
                     Err(NomErr::Error(ParserError::Base {
                         location,
                         kind,
@@ -360,7 +371,8 @@ macro_rules! impl_tests_for_item_arg3 {
 
             #[test]
             fn test() {
-                let (input, item) = $item(concat!(
+                let constants = BTreeMap::new();
+                let (input, item) = $item(&constants)(concat!(
                     stringify!($item_type),
                     "( ",
                     $argument0,
@@ -384,8 +396,9 @@ macro_rules! impl_tests_for_item_arg3 {
 
             #[test]
             fn missing_semicolon_test() {
+                let constants = BTreeMap::new();
                 assert_matches!(
-                    $item(concat!(
+                    $item(&constants)(concat!(
                         stringify!($item_type),
                         "( ",
                         $argument0,
@@ -410,8 +423,9 @@ macro_rules! impl_tests_for_item_arg3 {
             #[test]
 
             fn too_few_arguments_test() {
+                let constants = BTreeMap::new();
                 assert_matches!(
-                    $item(concat!(stringify!($item_type), "(false, false);input")),
+                    $item(&constants)(concat!(stringify!($item_type), "(false, false);input")),
                     Err(NomErr::Error(ParserError::Base {
                         location,
                         kind,
@@ -427,8 +441,9 @@ macro_rules! impl_tests_for_item_arg3 {
             #[test]
 
             fn too_many_arguments_test() {
+                let constants = BTreeMap::new();
                 assert_matches!(
-                    $item(concat!(stringify!($item_type), "(false, false, false, false);input")),
+                    $item(&constants)(concat!(stringify!($item_type), "(false, false, false, false);input")),
                     Err(NomErr::Error(ParserError::Base {
                         location,
                         kind,
