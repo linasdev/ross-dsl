@@ -221,11 +221,11 @@ impl From<ParserError<&str>> for ParserError<String> {
             ParserError::Alt(siblings) => {
                 let mut new_siblings = vec![];
                 new_siblings.reserve(siblings.len());
-    
+
                 for sibling in siblings {
                     new_siblings.push(sibling.into());
                 }
-    
+
                 ParserError::Alt(new_siblings)
             }
             ParserError::Base {
