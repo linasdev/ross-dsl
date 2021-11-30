@@ -28,5 +28,8 @@ fn main() {
         }
     ";
 
-    println!("{:?}", Parser::parse(text))
+    match Parser::parse(text) {
+        Ok(event_processors) => println!("{:?}", event_processors),
+        Err(err) => println!("{}", err),
+    }
 }
