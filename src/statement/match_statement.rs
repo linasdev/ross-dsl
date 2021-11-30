@@ -276,8 +276,7 @@ mod tests {
     #[test]
     fn tick_test() {
         let constants = BTreeMap::new();
-        let (input, matcher) =
-            match_statement(&constants)("match tick;input").unwrap();
+        let (input, matcher) = match_statement(&constants)("match tick;input").unwrap();
 
         assert_eq!(input, "input");
         assert_eq!(
@@ -286,7 +285,10 @@ mod tests {
         );
         assert_eq!(
             format!("{:?}", matcher.filter),
-            format!("{:?}", ValueEqualToConstFilter::new(Value::U16(INTERNAL_SYSTEM_TICK_EVENT_CODE)))
+            format!(
+                "{:?}",
+                ValueEqualToConstFilter::new(Value::U16(INTERNAL_SYSTEM_TICK_EVENT_CODE))
+            )
         );
     }
 
