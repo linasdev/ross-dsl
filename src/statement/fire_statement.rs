@@ -74,13 +74,14 @@ mod tests {
 
     use cool_asserts::assert_matches;
     use nom::Err as NomErr;
+    use nom::error::ErrorKind as NomErrorKind;
 
     use ross_config::extractor::{EventCodeExtractor, PacketExtractor};
     use ross_config::filter::ValueEqualToConstFilter;
     use ross_config::producer::PacketProducer;
     use ross_config::Value;
 
-    use crate::error::{ErrorKind, Expectation};
+    use crate::error::ErrorKind;
 
     #[test]
     fn provided_extractor_test() {
@@ -116,8 +117,8 @@ mod tests {
             ),
             Err(NomErr::Error(ParserError::Base {
                 location: _,
-                kind: ErrorKind::Expected(Expectation::Symbol('}')),
-                child: None,
+                kind: ErrorKind::Nom(NomErrorKind::Alt),
+                child: Some(_),
             }))
         );
     }
@@ -150,7 +151,7 @@ mod tests {
             } if match {
                 EventCodeExtractor();
                 ValueEqualToConstFilter(0x0123~u16);
-            }",
+            }input",
         )
         .unwrap();
 
