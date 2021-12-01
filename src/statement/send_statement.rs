@@ -85,6 +85,7 @@ fn base_syntax_parser<'a>(
                 let packet_creator = Creator {
                     extractor: Box::new(PacketExtractor::new()),
                     producer: Box::new(PacketProducer::new(to_address)),
+                    matcher: None,
                 };
 
                 Ok((vec![event_matcher, producer_matcher], vec![packet_creator]))
