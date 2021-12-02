@@ -22,7 +22,10 @@ pub fn do_statement<'a>(
         let content_parser = preceded(
             open_brace,
             pair(
-                map(many1(preceded(multispace0, match_statement(constants))), map_matchers_to_matcher),
+                map(
+                    many1(preceded(multispace0, match_statement(constants))),
+                    map_matchers_to_matcher,
+                ),
                 many0(preceded(multispace0, fire_statement(constants))),
             ),
         );

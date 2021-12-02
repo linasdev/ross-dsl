@@ -101,3 +101,6 @@ implement_keyword_parser!(tick_keyword, "tick");
 implement_keyword_parser!(fire_keyword, "fire");
 implement_keyword_parser!(true_keyword, "true");
 implement_keyword_parser!(false_keyword, "false");
+implement_keyword_parser!(not_keyword, "not");
+implement_keyword_parser!(or_keyword, "or");
+implement_keyword_parser!(and_keyword, "and");
