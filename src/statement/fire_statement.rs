@@ -73,11 +73,12 @@ mod tests {
     use super::*;
 
     use cool_asserts::assert_matches;
-    use nom::Err as NomErr;
     use nom::error::ErrorKind as NomErrorKind;
+    use nom::Err as NomErr;
 
     use ross_config::extractor::{EventCodeExtractor, PacketExtractor};
     use ross_config::filter::ValueEqualToConstFilter;
+    use ross_config::matcher::Matcher;
     use ross_config::producer::PacketProducer;
     use ross_config::Value;
 
@@ -166,13 +167,13 @@ mod tests {
         );
         assert_matches!(
             creator.matcher,
-            Some(matcher) => {
+            Some(Matcher::Single{extractor, filter}) => {
                 assert_eq!(
-                    format!("{:?}", matcher.extractor),
+                    format!("{:?}", extractor),
                     format!("{:?}", EventCodeExtractor::new())
                 );
                 assert_eq!(
-                    format!("{:?}", matcher.filter),
+                    format!("{:?}", filter),
                     format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0x0123)))
                 );
             },

@@ -32,9 +32,11 @@ pub fn send_statement<'a>(
                 additional_matcher_parser,
             );
 
-            map(pair_parser, |((mut matchers, creators), matcher)| {
-                matchers.push(matcher);
-                (matchers, creators)
+            map(pair_parser, |((matcher, creators), additional_matcher)| {
+                (
+                    Matcher::And(Box::new(matcher), Box::new(additional_matcher)),
+                    creators,
+                )
             })
         };
 
@@ -43,15 +45,15 @@ pub fn send_statement<'a>(
             preceded(multispace0, semicolon),
         );
 
-        let (input, (matchers, creators)) = alt((if_match_parser, normal_syntax_parser))(text)?;
+        let (input, (matcher, creators)) = alt((if_match_parser, normal_syntax_parser))(text)?;
 
-        Ok((input, EventProcessor { matchers, creators }))
+        Ok((input, EventProcessor { matcher, creators }))
     }
 }
 
 fn base_syntax_parser<'a>(
     constants: &'a BTreeMap<&str, Literal>,
-) -> impl FnMut(&str) -> IResult<&str, (Vec<Matcher>, Vec<Creator>), ParserError<&str>> + 'a {
+) -> impl FnMut(&str) -> IResult<&str, (Matcher, Vec<Creator>), ParserError<&str>> + 'a {
     move |text| {
         let tuple_parser = tuple((
             literal_or_constant(constants),
@@ -72,15 +74,18 @@ fn base_syntax_parser<'a>(
                 let from_address = from_address.try_into()?;
                 let to_address = to_address.try_into()?;
 
-                let event_matcher = Matcher {
+                let event_matcher = Matcher::Single {
                     extractor: Box::new(EventCodeExtractor::new()),
                     filter: Box::new(ValueEqualToConstFilter::new(Value::U16(event_code))),
                 };
 
-                let producer_matcher = Matcher {
+                let producer_matcher = Matcher::Single {
                     extractor: Box::new(EventProducerAddressExtractor::new()),
                     filter: Box::new(ValueEqualToConstFilter::new(Value::U16(from_address))),
                 };
+
+                let combined_matcher =
+                    Matcher::And(Box::new(event_matcher), Box::new(producer_matcher));
 
                 let packet_creator = Creator {
                     extractor: Box::new(PacketExtractor::new()),
@@ -88,7 +93,7 @@ fn base_syntax_parser<'a>(
                     matcher: None,
                 };
 
-                Ok((vec![event_matcher, producer_matcher], vec![packet_creator]))
+                Ok((combined_matcher, vec![packet_creator]))
             },
         );
 
@@ -115,25 +120,29 @@ mod tests {
 
         assert_eq!(input, "input");
 
-        let matchers = event_processor.matchers;
+        assert_matches!(event_processor.matcher, Matcher::And(matcher1, matcher2) => {
+            assert_matches!(*matcher1, Matcher::Single {extractor, filter} => {
+                assert_eq!(
+                    format!("{:?}", extractor),
+                    format!("{:?}", EventCodeExtractor::new()),
+                );
+                assert_eq!(
+                    format!("{:?}", filter),
+                    format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xabab))),
+                );
+            });
 
-        assert_eq!(matchers.len(), 2);
-        assert_eq!(
-            format!("{:?}", matchers[0].extractor),
-            format!("{:?}", EventCodeExtractor::new()),
-        );
-        assert_eq!(
-            format!("{:?}", matchers[0].filter),
-            format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xabab))),
-        );
-        assert_eq!(
-            format!("{:?}", matchers[1].extractor),
-            format!("{:?}", EventProducerAddressExtractor::new()),
-        );
-        assert_eq!(
-            format!("{:?}", matchers[1].filter),
-            format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0x0123))),
-        );
+            assert_matches!(*matcher2, Matcher::Single {extractor, filter} => {
+                assert_eq!(
+                    format!("{:?}", extractor),
+                    format!("{:?}", EventProducerAddressExtractor::new()),
+                );
+                assert_eq!(
+                    format!("{:?}", filter),
+                    format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0x0123))),
+                );
+            });
+        });
 
         let creators = event_processor.creators;
 
@@ -210,33 +219,42 @@ mod tests {
 
         assert_eq!(input, "input");
 
-        let matchers = event_processor.matchers;
+        assert_matches!(event_processor.matcher, Matcher::And(matcher1, matcher2) => {
+            assert_matches!(*matcher1, Matcher::And(matcher1, matcher2) => {
+                assert_matches!(*matcher1, Matcher::Single {extractor, filter} => {
+                    assert_eq!(
+                        format!("{:?}", extractor),
+                        format!("{:?}", EventCodeExtractor::new()),
+                    );
+                    assert_eq!(
+                        format!("{:?}", filter),
+                        format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xabab))),
+                    );
+                });
 
-        assert_eq!(matchers.len(), 3);
-        assert_eq!(
-            format!("{:?}", matchers[0].extractor),
-            format!("{:?}", EventCodeExtractor::new()),
-        );
-        assert_eq!(
-            format!("{:?}", matchers[0].filter),
-            format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xabab))),
-        );
-        assert_eq!(
-            format!("{:?}", matchers[1].extractor),
-            format!("{:?}", EventProducerAddressExtractor::new()),
-        );
-        assert_eq!(
-            format!("{:?}", matchers[1].filter),
-            format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0x0123))),
-        );
-        assert_eq!(
-            format!("{:?}", matchers[2].extractor),
-            format!("{:?}", EventCodeExtractor::new()),
-        );
-        assert_eq!(
-            format!("{:?}", matchers[2].filter),
-            format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xbaba))),
-        );
+                assert_matches!(*matcher2, Matcher::Single {extractor, filter} => {
+                    assert_eq!(
+                        format!("{:?}", extractor),
+                        format!("{:?}", EventProducerAddressExtractor::new()),
+                    );
+                    assert_eq!(
+                        format!("{:?}", filter),
+                        format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0x0123))),
+                    );
+                });
+            });
+
+            assert_matches!(*matcher2, Matcher::Single {extractor, filter} => {
+                assert_eq!(
+                    format!("{:?}", extractor),
+                    format!("{:?}", EventCodeExtractor::new()),
+                );
+                assert_eq!(
+                    format!("{:?}", filter),
+                    format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xbaba))),
+                );
+            });
+        });
 
         let creators = event_processor.creators;
 

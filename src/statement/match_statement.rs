@@ -113,7 +113,7 @@ pub fn match_statement<'a>(
             block_match_parser,
         ))(text)?;
 
-        Ok((input, Matcher { extractor, filter }))
+        Ok((input, Matcher::Single { extractor, filter }))
     }
 }
 
@@ -139,14 +139,16 @@ mod tests {
         .unwrap();
 
         assert_eq!(input, "input");
-        assert_eq!(
-            format!("{:?}", matcher.extractor),
-            format!("{:?}", EventCodeExtractor::new())
-        );
-        assert_eq!(
-            format!("{:?}", matcher.filter),
-            format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xabab)))
-        );
+        assert_matches!(matcher, Matcher::Single {extractor, filter} => {
+            assert_eq!(
+                format!("{:?}", extractor),
+                format!("{:?}", EventCodeExtractor::new())
+            );
+            assert_eq!(
+                format!("{:?}", filter),
+                format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xabab)))
+            );
+        });
     }
 
     #[test]
@@ -160,14 +162,16 @@ mod tests {
         .unwrap();
 
         assert_eq!(input, "input");
-        assert_eq!(
-            format!("{:?}", matcher.extractor),
-            format!("{:?}", NoneExtractor::new())
-        );
-        assert_eq!(
-            format!("{:?}", matcher.filter),
-            format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xabab)))
-        );
+        assert_matches!(matcher, Matcher::Single {extractor, filter} => {
+            assert_eq!(
+                format!("{:?}", extractor),
+                format!("{:?}", NoneExtractor::new())
+            );
+            assert_eq!(
+                format!("{:?}", filter),
+                format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xabab)))
+            );
+        });
     }
 
     #[test]
@@ -194,14 +198,16 @@ mod tests {
         let (input, matcher) = match_statement(&constants)("match event 0xabab~u16;input").unwrap();
 
         assert_eq!(input, "input");
-        assert_eq!(
-            format!("{:?}", matcher.extractor),
-            format!("{:?}", EventCodeExtractor::new())
-        );
-        assert_eq!(
-            format!("{:?}", matcher.filter),
-            format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xabab)))
-        );
+        assert_matches!(matcher, Matcher::Single {extractor, filter} => {
+            assert_eq!(
+                format!("{:?}", extractor),
+                format!("{:?}", EventCodeExtractor::new())
+            );
+            assert_eq!(
+                format!("{:?}", filter),
+                format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xabab)))
+            );
+        });
     }
 
     #[test]
@@ -237,14 +243,18 @@ mod tests {
             match_statement(&constants)("match producer 0xabab~u16;input").unwrap();
 
         assert_eq!(input, "input");
-        assert_eq!(
-            format!("{:?}", matcher.extractor),
-            format!("{:?}", EventProducerAddressExtractor::new())
-        );
-        assert_eq!(
-            format!("{:?}", matcher.filter),
-            format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xabab)))
-        );
+
+        assert_eq!(input, "input");
+        assert_matches!(matcher, Matcher::Single {extractor, filter} => {
+            assert_eq!(
+                format!("{:?}", extractor),
+                format!("{:?}", EventProducerAddressExtractor::new())
+            );
+            assert_eq!(
+                format!("{:?}", filter),
+                format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xabab)))
+            );
+        });
     }
 
     #[test]
@@ -279,17 +289,18 @@ mod tests {
         let (input, matcher) = match_statement(&constants)("match tick;input").unwrap();
 
         assert_eq!(input, "input");
-        assert_eq!(
-            format!("{:?}", matcher.extractor),
-            format!("{:?}", EventCodeExtractor::new())
-        );
-        assert_eq!(
-            format!("{:?}", matcher.filter),
-            format!(
-                "{:?}",
-                ValueEqualToConstFilter::new(Value::U16(INTERNAL_SYSTEM_TICK_EVENT_CODE))
-            )
-        );
+
+        assert_eq!(input, "input");
+        assert_matches!(matcher, Matcher::Single {extractor, filter} => {
+            assert_eq!(
+                format!("{:?}", extractor),
+                format!("{:?}", EventCodeExtractor::new())
+            );
+            assert_eq!(
+                format!("{:?}", filter),
+                format!("{:?}", ValueEqualToConstFilter::new(Value::U16(INTERNAL_SYSTEM_TICK_EVENT_CODE)))
+            );
+        });
     }
 
     #[test]

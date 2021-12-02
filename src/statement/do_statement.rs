@@ -1,11 +1,12 @@
 use nom::character::complete::multispace0;
-use nom::combinator::cut;
-use nom::multi::many0;
+use nom::combinator::{cut, map};
+use nom::multi::{many0, many1};
 use nom::sequence::{pair, preceded, terminated};
 use nom::IResult;
 use std::collections::BTreeMap;
 
 use ross_config::event_processor::EventProcessor;
+use ross_config::matcher::Matcher;
 
 use crate::error::ParserError;
 use crate::keyword::do_keyword;
@@ -21,16 +22,32 @@ pub fn do_statement<'a>(
         let content_parser = preceded(
             open_brace,
             pair(
-                many0(preceded(multispace0, match_statement(constants))),
+                map(many1(preceded(multispace0, match_statement(constants))), map_matchers_to_matcher),
                 many0(preceded(multispace0, fire_statement(constants))),
             ),
         );
         let keyword_parser = preceded(do_keyword, cut(preceded(multispace0, content_parser)));
         let mut close_brace_parser = terminated(keyword_parser, preceded(multispace0, close_brace));
 
-        let (input, (matchers, creators)) = close_brace_parser(text)?;
+        let (input, (matcher, creators)) = close_brace_parser(text)?;
 
-        Ok((input, EventProcessor { matchers, creators }))
+        Ok((input, EventProcessor { matcher, creators }))
+    }
+}
+
+fn map_matchers_to_matcher(mut matchers: Vec<Matcher>) -> Matcher {
+    if matchers.len() < 2 {
+        panic!("This should never be reached because we're using many1");
+    } else if matchers.len() == 2 {
+        let matcher2 = matchers.pop().unwrap();
+        let matcher1 = matchers.pop().unwrap();
+        Matcher::And(Box::new(matcher1), Box::new(matcher2))
+    } else {
+        let matcher2 = matchers.pop().unwrap();
+        Matcher::And(
+            Box::new(map_matchers_to_matcher(matchers)),
+            Box::new(matcher2),
+        )
     }
 }
 
@@ -67,24 +84,33 @@ mod tests {
 
         assert_eq!(input, "input");
 
-        let matchers = event_producer.matchers;
+        assert_matches!(
+            event_producer.matcher,
+            Matcher::And(matcher1, matcher2) => {
+                assert_matches!(*matcher1, Matcher::Single{extractor, filter} => {
+                        assert_eq!(
+                            format!("{:?}", extractor),
+                            format!("{:?}", EventCodeExtractor::new())
+                        );
+                        assert_eq!(
+                            format!("{:?}", filter),
+                            format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xabab)))
+                        );
+                    },
+                );
 
-        assert_eq!(matchers.len(), 2);
-        assert_eq!(
-            format!("{:?}", matchers[0].extractor),
-            format!("{:?}", EventCodeExtractor::new()),
-        );
-        assert_eq!(
-            format!("{:?}", matchers[0].filter),
-            format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xabab))),
-        );
-        assert_eq!(
-            format!("{:?}", matchers[1].extractor),
-            format!("{:?}", EventProducerAddressExtractor::new()),
-        );
-        assert_eq!(
-            format!("{:?}", matchers[1].filter),
-            format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0x0123))),
+                assert_matches!(*matcher2, Matcher::Single{extractor, filter} => {
+                        assert_eq!(
+                            format!("{:?}", extractor),
+                            format!("{:?}", EventProducerAddressExtractor::new())
+                        );
+                        assert_eq!(
+                            format!("{:?}", filter),
+                            format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0x0123)))
+                        );
+                    },
+                );
+            },
         );
 
         let creators = event_producer.creators;
