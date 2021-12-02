@@ -1,13 +1,13 @@
+use cron_parser::parse_field;
 use nom::branch::alt;
+use nom::bytes::complete::take_until;
 use nom::character::complete::alphanumeric1;
 use nom::combinator::success;
-use nom::bytes::complete::take_until;
 use nom::sequence::{delimited, separated_pair, tuple};
 use nom::{Err as NomErr, IResult};
 use parse_int::parse;
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
-use cron_parser::parse_field;
 
 use ross_config::cron::{CronExpression, CronField};
 use ross_config::Value;
@@ -45,11 +45,10 @@ pub fn literal(text: &str) -> IResult<&str, Literal, ParserError<&str>> {
     let boolean_parser = tuple((alt((false_keyword, true_keyword)), success("bool")));
     let hex_parser = separated_pair(hex1, tilde, alphanumeric1);
     let decimal_parser = separated_pair(dec1, tilde, alphanumeric1);
-    let string_parser = tuple((delimited(
-        double_quote,
-        take_until("\""),
-        double_quote,
-    ), success("string")));
+    let string_parser = tuple((
+        delimited(double_quote, take_until("\""), double_quote),
+        success("string"),
+    ));
 
     match alt((string_parser, boolean_parser, hex_parser, decimal_parser))(text) {
         Ok((input, (value, "u8"))) => {
@@ -265,7 +264,9 @@ impl TryFrom<Literal> for CronExpression {
 
                 let second = if let Some(field_string) = string_split.next() {
                     if let Ok(field_set) = parse_field(field_string, 0, 59) {
-                        CronField::<u8>::Including(field_set.iter().map(|value| *value as u8).collect())
+                        CronField::<u8>::Including(
+                            field_set.iter().map(|value| *value as u8).collect(),
+                        )
                     } else {
                         return Err(ParserError::Base {
                             location: "",
@@ -283,7 +284,9 @@ impl TryFrom<Literal> for CronExpression {
 
                 let minute = if let Some(field_string) = string_split.next() {
                     if let Ok(field_set) = parse_field(field_string, 0, 59) {
-                        CronField::<u8>::Including(field_set.iter().map(|value| *value as u8).collect())
+                        CronField::<u8>::Including(
+                            field_set.iter().map(|value| *value as u8).collect(),
+                        )
                     } else {
                         return Err(ParserError::Base {
                             location: "",
@@ -301,7 +304,9 @@ impl TryFrom<Literal> for CronExpression {
 
                 let hour = if let Some(field_string) = string_split.next() {
                     if let Ok(field_set) = parse_field(field_string, 0, 23) {
-                        CronField::<u8>::Including(field_set.iter().map(|value| *value as u8).collect())
+                        CronField::<u8>::Including(
+                            field_set.iter().map(|value| *value as u8).collect(),
+                        )
                     } else {
                         return Err(ParserError::Base {
                             location: "",
@@ -319,7 +324,9 @@ impl TryFrom<Literal> for CronExpression {
 
                 let day_month = if let Some(field_string) = string_split.next() {
                     if let Ok(field_set) = parse_field(field_string, 1, 31) {
-                        CronField::<u8>::Including(field_set.iter().map(|value| *value as u8).collect())
+                        CronField::<u8>::Including(
+                            field_set.iter().map(|value| *value as u8).collect(),
+                        )
                     } else {
                         return Err(ParserError::Base {
                             location: "",
@@ -337,7 +344,9 @@ impl TryFrom<Literal> for CronExpression {
 
                 let month = if let Some(field_string) = string_split.next() {
                     if let Ok(field_set) = parse_field(field_string, 1, 12) {
-                        CronField::<u8>::Including(field_set.iter().map(|value| *value as u8).collect())
+                        CronField::<u8>::Including(
+                            field_set.iter().map(|value| *value as u8).collect(),
+                        )
                     } else {
                         return Err(ParserError::Base {
                             location: "",
@@ -355,7 +364,9 @@ impl TryFrom<Literal> for CronExpression {
 
                 let day_week = if let Some(field_string) = string_split.next() {
                     if let Ok(field_set) = parse_field(field_string, 1, 7) {
-                        CronField::<u8>::Including(field_set.iter().map(|value| *value as u8).collect())
+                        CronField::<u8>::Including(
+                            field_set.iter().map(|value| *value as u8).collect(),
+                        )
                     } else {
                         return Err(ParserError::Base {
                             location: "",
@@ -374,7 +385,7 @@ impl TryFrom<Literal> for CronExpression {
                 // TODO: Requires custom parser to not produce big sets of year numbers
                 let year = CronField::Any;
 
-                Ok(CronExpression{
+                Ok(CronExpression {
                     second,
                     minute,
                     hour,
@@ -383,7 +394,7 @@ impl TryFrom<Literal> for CronExpression {
                     day_week,
                     year,
                 })
-            },
+            }
         }
     }
 }
