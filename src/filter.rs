@@ -28,6 +28,7 @@ pub fn filter<'a>(
         impl_item_arg2!(input, name, arguments, SetStateToConstFilter);
         impl_item_arg1!(input, name, arguments, SetStateToValueFilter);
         impl_item_arg1!(input, name, arguments, FlipStateFilter);
+        impl_item_arg1!(input, name, arguments, TimeMatchesCronExpressionFilter);
 
         Err(Err::Error(ParserError::Base {
             location: name,
@@ -41,6 +42,7 @@ pub fn filter<'a>(
 mod tests {
     use super::*;
 
+    use ross_config::cron::{CronExpression, CronField};
     use ross_config::Value;
 
     use crate::{impl_tests_for_item_arg1, impl_tests_for_item_arg2};
@@ -108,5 +110,22 @@ mod tests {
         filter,
         FlipStateFilter,
         ("0xabababab~u32", 0xabab_abab)
+    );
+    impl_tests_for_item_arg1!(
+        time_matches_cron_expression_filter,
+        filter,
+        TimeMatchesCronExpressionFilter,
+        (
+            "\"1 1 1 1 1 1 *\"",
+            CronExpression {
+                second: CronField::Including([1].iter().map(|n| *n).collect()),
+                minute: CronField::Including([1].iter().map(|n| *n).collect()),
+                hour: CronField::Including([1].iter().map(|n| *n).collect()),
+                day_month: CronField::Including([1].iter().map(|n| *n).collect()),
+                month: CronField::Including([1].iter().map(|n| *n).collect()),
+                day_week: CronField::Including([1].iter().map(|n| *n).collect()),
+                year: CronField::Any,
+            }
+        )
     );
 }

@@ -1,19 +1,22 @@
 use nom::branch::alt;
 use nom::character::complete::alphanumeric1;
 use nom::combinator::success;
-use nom::sequence::{separated_pair, tuple};
+use nom::bytes::complete::take_until;
+use nom::sequence::{delimited, separated_pair, tuple};
 use nom::{Err as NomErr, IResult};
 use parse_int::parse;
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
+use cron_parser::parse_field;
 
+use ross_config::cron::{CronExpression, CronField};
 use ross_config::Value;
 use ross_protocol::event::message::MessageValue;
 
 use crate::error::{ErrorKind, Expectation, ParserError};
 use crate::keyword::{false_keyword, true_keyword};
 use crate::parser::{dec1, hex1, name_parser};
-use crate::symbol::tilde;
+use crate::symbol::{double_quote, tilde};
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub enum Literal {
@@ -21,6 +24,7 @@ pub enum Literal {
     U16(u16),
     U32(u32),
     Bool(bool),
+    String(String),
 }
 
 pub fn literal_or_constant<'a>(
@@ -41,8 +45,13 @@ pub fn literal(text: &str) -> IResult<&str, Literal, ParserError<&str>> {
     let boolean_parser = tuple((alt((false_keyword, true_keyword)), success("bool")));
     let hex_parser = separated_pair(hex1, tilde, alphanumeric1);
     let decimal_parser = separated_pair(dec1, tilde, alphanumeric1);
+    let string_parser = tuple((delimited(
+        double_quote,
+        take_until("\""),
+        double_quote,
+    ), success("string")));
 
-    match alt((boolean_parser, hex_parser, decimal_parser))(text) {
+    match alt((string_parser, boolean_parser, hex_parser, decimal_parser))(text) {
         Ok((input, (value, "u8"))) => {
             if let Ok(value) = parse(value) {
                 Ok((input, Literal::U8(value)))
@@ -85,6 +94,7 @@ pub fn literal(text: &str) -> IResult<&str, Literal, ParserError<&str>> {
                 child: None,
             })),
         },
+        Ok((input, (value, "string"))) => Ok((input, Literal::String(value.to_string()))),
         Ok((_, (_, literal_type))) => Err(NomErr::Error(ParserError::Base {
             location: literal_type,
             kind: ErrorKind::Expected(Expectation::Type),
@@ -120,6 +130,11 @@ impl TryFrom<Literal> for u8 {
                 kind: ErrorKind::CastFromToNotAllowed("bool", "u8"),
                 child: None,
             }),
+            Literal::String(_) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("string", "u8"),
+                child: None,
+            }),
         }
     }
 }
@@ -143,6 +158,11 @@ impl TryFrom<Literal> for u16 {
             Literal::Bool(_) => Err(ParserError::Base {
                 location: "",
                 kind: ErrorKind::CastFromToNotAllowed("bool", "u16"),
+                child: None,
+            }),
+            Literal::String(_) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("string", "u16"),
                 child: None,
             }),
         }
@@ -170,6 +190,11 @@ impl TryFrom<Literal> for u32 {
                 kind: ErrorKind::CastFromToNotAllowed("bool", "u32"),
                 child: None,
             }),
+            Literal::String(_) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("string", "u32"),
+                child: None,
+            }),
         }
     }
 }
@@ -183,6 +208,11 @@ impl TryFrom<Literal> for Value {
             Literal::U16(value) => Ok(Value::U16(value)),
             Literal::U32(value) => Ok(Value::U32(value)),
             Literal::Bool(value) => Ok(Value::Bool(value)),
+            Literal::String(_) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("string", "value"),
+                child: None,
+            }),
         }
     }
 }
@@ -196,6 +226,164 @@ impl TryFrom<Literal> for MessageValue {
             Literal::U16(value) => Ok(MessageValue::U16(value)),
             Literal::U32(value) => Ok(MessageValue::U32(value)),
             Literal::Bool(value) => Ok(MessageValue::Bool(value)),
+            Literal::String(_) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("string", "message value"),
+                child: None,
+            }),
+        }
+    }
+}
+
+impl TryFrom<Literal> for CronExpression {
+    type Error = ParserError<&'static str>;
+
+    fn try_from(literal: Literal) -> Result<Self, Self::Error> {
+        match literal {
+            Literal::U8(_) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("u8", "cron expression"),
+                child: None,
+            }),
+            Literal::U16(_) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("u16", "cron expression"),
+                child: None,
+            }),
+            Literal::U32(_) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("u32", "cron expression"),
+                child: None,
+            }),
+            Literal::Bool(_) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("bool", "cron expression"),
+                child: None,
+            }),
+            Literal::String(string) => {
+                let mut string_split = string.split_whitespace();
+
+                let second = if let Some(field_string) = string_split.next() {
+                    if let Ok(field_set) = parse_field(field_string, 0, 59) {
+                        CronField::<u8>::Including(field_set.iter().map(|value| *value as u8).collect())
+                    } else {
+                        return Err(ParserError::Base {
+                            location: "",
+                            kind: ErrorKind::Expected(Expectation::Value),
+                            child: None,
+                        });
+                    }
+                } else {
+                    return Err(ParserError::Base {
+                        location: "",
+                        kind: ErrorKind::Expected(Expectation::Value),
+                        child: None,
+                    });
+                };
+
+                let minute = if let Some(field_string) = string_split.next() {
+                    if let Ok(field_set) = parse_field(field_string, 0, 59) {
+                        CronField::<u8>::Including(field_set.iter().map(|value| *value as u8).collect())
+                    } else {
+                        return Err(ParserError::Base {
+                            location: "",
+                            kind: ErrorKind::Expected(Expectation::Value),
+                            child: None,
+                        });
+                    }
+                } else {
+                    return Err(ParserError::Base {
+                        location: "",
+                        kind: ErrorKind::Expected(Expectation::Value),
+                        child: None,
+                    });
+                };
+
+                let hour = if let Some(field_string) = string_split.next() {
+                    if let Ok(field_set) = parse_field(field_string, 0, 23) {
+                        CronField::<u8>::Including(field_set.iter().map(|value| *value as u8).collect())
+                    } else {
+                        return Err(ParserError::Base {
+                            location: "",
+                            kind: ErrorKind::Expected(Expectation::Value),
+                            child: None,
+                        });
+                    }
+                } else {
+                    return Err(ParserError::Base {
+                        location: "",
+                        kind: ErrorKind::Expected(Expectation::Value),
+                        child: None,
+                    });
+                };
+
+                let day_month = if let Some(field_string) = string_split.next() {
+                    if let Ok(field_set) = parse_field(field_string, 1, 31) {
+                        CronField::<u8>::Including(field_set.iter().map(|value| *value as u8).collect())
+                    } else {
+                        return Err(ParserError::Base {
+                            location: "",
+                            kind: ErrorKind::Expected(Expectation::Value),
+                            child: None,
+                        });
+                    }
+                } else {
+                    return Err(ParserError::Base {
+                        location: "",
+                        kind: ErrorKind::Expected(Expectation::Value),
+                        child: None,
+                    });
+                };
+
+                let month = if let Some(field_string) = string_split.next() {
+                    if let Ok(field_set) = parse_field(field_string, 1, 12) {
+                        CronField::<u8>::Including(field_set.iter().map(|value| *value as u8).collect())
+                    } else {
+                        return Err(ParserError::Base {
+                            location: "",
+                            kind: ErrorKind::Expected(Expectation::Value),
+                            child: None,
+                        });
+                    }
+                } else {
+                    return Err(ParserError::Base {
+                        location: "",
+                        kind: ErrorKind::Expected(Expectation::Value),
+                        child: None,
+                    });
+                };
+
+                let day_week = if let Some(field_string) = string_split.next() {
+                    if let Ok(field_set) = parse_field(field_string, 1, 7) {
+                        CronField::<u8>::Including(field_set.iter().map(|value| *value as u8).collect())
+                    } else {
+                        return Err(ParserError::Base {
+                            location: "",
+                            kind: ErrorKind::Expected(Expectation::Value),
+                            child: None,
+                        });
+                    }
+                } else {
+                    return Err(ParserError::Base {
+                        location: "",
+                        kind: ErrorKind::Expected(Expectation::Value),
+                        child: None,
+                    });
+                };
+
+                // TODO: Requires custom parser to not produce big sets of year numbers
+                let year = CronField::Any;
+
+                Ok(CronExpression{
+                    second,
+                    minute,
+                    hour,
+                    day_month,
+                    month,
+                    day_week,
+                    year,
+                })
+            },
         }
     }
 }
@@ -346,6 +534,13 @@ mod tests {
     #[test]
     fn bool_false_test() {
         assert_matches!(literal("false;input"), Ok((";input", Literal::Bool(false))));
+    }
+
+    #[test]
+    fn text_test() {
+        assert_matches!(literal("\"This is a string\";input"), Ok((";input", Literal::String(string))) => {
+            assert_eq!(string, "This is a string");
+        });
     }
 
     #[test]
