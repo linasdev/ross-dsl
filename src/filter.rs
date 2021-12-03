@@ -29,6 +29,7 @@ pub fn filter<'a>(
         impl_item_arg1!(input, name, arguments, SetStateToValueFilter);
         impl_item_arg1!(input, name, arguments, FlipStateFilter);
         impl_item_arg1!(input, name, arguments, TimeMatchesCronExpressionFilter);
+        impl_item_arg2!(input, name, arguments, StateMoreThanConstFilter);
 
         Err(Err::Error(ParserError::Base {
             location: name,
@@ -127,5 +128,12 @@ mod tests {
                 year: CronField::Any,
             }
         )
+    );
+    impl_tests_for_item_arg2!(
+        state_more_than_const_filter,
+        filter,
+        StateMoreThanConstFilter,
+        ("0xabababab~u32", 0xabab_abab),
+        ("0xbabababa~u32", Value::U32(0xbaba_baba))
     );
 }
