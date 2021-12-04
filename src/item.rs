@@ -178,7 +178,7 @@ macro_rules! impl_tests_for_item_arg0 {
 
 #[macro_export]
 macro_rules! impl_tests_for_item_arg1 {
-    ($test_module_name:ident, $item:ident, $item_type:ty, ($argument0:expr, $argument0_value:expr)) => {
+    ($test_module_name:ident, $item:ident, $item_type:ty, ($argument_or_constant0:expr, $argument_or_constant0_value:expr)) => {
         mod $test_module_name {
             use super::*;
 
@@ -193,7 +193,7 @@ macro_rules! impl_tests_for_item_arg1 {
                 let (input, item) = $item(&constants)(concat!(
                     stringify!($item_type),
                     "(",
-                    $argument0,
+                    $argument_or_constant0,
                     ");input"
                 ))
                 .unwrap();
@@ -201,7 +201,7 @@ macro_rules! impl_tests_for_item_arg1 {
                 assert_eq!(input, "input");
                 assert_eq!(
                     format!("{:?}", item),
-                    format!("{:?}", <$item_type>::new($argument0_value))
+                    format!("{:?}", <$item_type>::new($argument_or_constant0_value))
                 );
             }
 
@@ -209,7 +209,7 @@ macro_rules! impl_tests_for_item_arg1 {
             fn missing_semicolon_test() {
                 let constants = BTreeMap::new();
                 assert_matches!(
-                    $item(&constants)(concat!(stringify!($item_type), "(", $argument0, ")input")),
+                    $item(&constants)(concat!(stringify!($item_type), "(", $argument_or_constant0, ")input")),
                     Err(NomErr::Error(ParserError::Base {
                         location,
                         kind,
@@ -263,7 +263,7 @@ macro_rules! impl_tests_for_item_arg1 {
 
 #[macro_export]
 macro_rules! impl_tests_for_item_arg2 {
-    ($test_module_name:ident, $item:ident, $item_type:ty, ($argument0:expr, $argument0_value:expr), ($argument1:expr, $argument1_value:expr)) => {
+    ($test_module_name:ident, $item:ident, $item_type:ty, ($argument_or_constant0:expr, $argument_or_constant0_value:expr), ($argument1:expr, $argument1_value:expr)) => {
         mod $test_module_name {
             use super::*;
 
@@ -278,7 +278,7 @@ macro_rules! impl_tests_for_item_arg2 {
                 let (input, item) = $item(&constants)(concat!(
                     stringify!($item_type),
                     "(",
-                    $argument0,
+                    $argument_or_constant0,
                     ", ",
                     $argument1,
                     ");input"
@@ -290,7 +290,7 @@ macro_rules! impl_tests_for_item_arg2 {
                     format!("{:?}", item),
                     format!(
                         "{:?}",
-                        <$item_type>::new($argument0_value, $argument1_value)
+                        <$item_type>::new($argument_or_constant0_value, $argument1_value)
                     )
                 );
             }
@@ -302,7 +302,7 @@ macro_rules! impl_tests_for_item_arg2 {
                     $item(&constants)(concat!(
                         stringify!($item_type),
                         "( ",
-                        $argument0,
+                        $argument_or_constant0,
                         " , ",
                         $argument1,
                         " )input"
@@ -360,7 +360,7 @@ macro_rules! impl_tests_for_item_arg2 {
 
 #[macro_export]
 macro_rules! impl_tests_for_item_arg3 {
-    ($test_module_name:ident, $item:ident, $item_type:ty, ($argument0:expr, $argument0_value:expr), ($argument1:expr, $argument1_value:expr), ($argument2:expr, $argument2_value:expr)) => {
+    ($test_module_name:ident, $item:ident, $item_type:ty, ($argument_or_constant0:expr, $argument_or_constant0_value:expr), ($argument1:expr, $argument1_value:expr), ($argument2:expr, $argument2_value:expr)) => {
         mod $test_module_name {
             use super::*;
 
@@ -375,7 +375,7 @@ macro_rules! impl_tests_for_item_arg3 {
                 let (input, item) = $item(&constants)(concat!(
                     stringify!($item_type),
                     "( ",
-                    $argument0,
+                    $argument_or_constant0,
                     " , ",
                     $argument1,
                     " , ",
@@ -389,7 +389,7 @@ macro_rules! impl_tests_for_item_arg3 {
                     format!("{:?}", item),
                     format!(
                         "{:?}",
-                        <$item_type>::new($argument0_value, $argument1_value, $argument2_value)
+                        <$item_type>::new($argument_or_constant0_value, $argument1_value, $argument2_value)
                     )
                 );
             }
@@ -401,7 +401,7 @@ macro_rules! impl_tests_for_item_arg3 {
                     $item(&constants)(concat!(
                         stringify!($item_type),
                         "( ",
-                        $argument0,
+                        $argument_or_constant0,
                         " , ",
                         $argument1,
                         " , ",

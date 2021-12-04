@@ -12,7 +12,7 @@ use ross_config::config::Config;
 use ross_protocol::event::event_code::*;
 
 use crate::error::{ErrorKind, Expectation, ParserError};
-use crate::literal::{literal_or_constant, Literal};
+use crate::literal::{literal_or_constant, literal, Literal};
 use crate::statement::const_statement::const_statement;
 use crate::statement::do_statement::do_statement;
 use crate::statement::let_statement::let_statement;
@@ -203,7 +203,7 @@ pub fn dec1(text: &str) -> IResult<&str, &str, ParserError<&str>> {
     )
 }
 
-pub fn argument0<'a>(
+pub fn argument_or_constant0<'a>(
     constants: &'a BTreeMap<&str, Literal>,
 ) -> impl FnMut(&str) -> IResult<&str, Vec<Literal>, ParserError<&str>> + 'a {
     move |text| {
@@ -216,6 +216,17 @@ pub fn argument0<'a>(
             close_parenthesis,
         )(text)
     }
+}
+
+pub fn argument0(text: &str) -> IResult<&str, Vec<Literal>, ParserError<&str>> {
+    delimited(
+        terminated(open_parenthesis, multispace0),
+        separated_list0(
+            comma,
+            delimited(multispace0, literal, multispace0),
+        ),
+        close_parenthesis,
+    )(text)
 }
 
 #[cfg(test)]
@@ -367,10 +378,62 @@ mod tests {
     }
 
     #[test]
-    fn argument0_two_arguments_test() {
+    fn argument_or_constant0_two_arguments_test() {
         let constants = BTreeMap::new();
         assert_matches!(
-            argument0(&constants)("(0xab~u16, false)"),
+            argument_or_constant0(&constants)("(0xab~u16, false)"),
+            Ok((input, arguments)) => {
+                assert_eq!(input, "");
+                assert_eq!(arguments, vec![Literal::U16(0xab), Literal::Bool(false)]);
+            }
+        );
+    }
+
+    #[test]
+    fn argument_or_constant0_one_argument_test() {
+        let constants = BTreeMap::new();
+        assert_matches!(
+            argument_or_constant0(&constants)("(0xab~u16)"),
+            Ok((input, arguments)) => {
+                assert_eq!(input, "");
+                assert_eq!(arguments, vec![Literal::U16(0xab)]);
+            }
+        );
+    }
+
+    #[test]
+    fn argument_or_constant0_no_arguments_test() {
+        let constants = BTreeMap::new();
+        assert_matches!(
+            argument_or_constant0(&constants)("(  )"),
+            Ok((input, arguments)) => {
+                assert_eq!(input, "");
+                assert_eq!(arguments, vec![]);
+            }
+        );
+    }
+
+    #[test]
+    fn argument_or_constant0_empty_test() {
+        let constants = BTreeMap::new();
+        assert_matches!(
+            argument_or_constant0(&constants)(""),
+            Err(NomErr::Error(ParserError::Base {
+                location,
+                kind,
+                child,
+            })) => {
+                assert_matches!(location, "");
+                assert_matches!(kind, ErrorKind::Expected(Expectation::Symbol('(')));
+                assert_matches!(child, None);
+            }
+        );
+    }
+
+    #[test]
+    fn argument0_two_arguments_test() {
+        assert_matches!(
+            argument0("(0xab~u16, false)"),
             Ok((input, arguments)) => {
                 assert_eq!(input, "");
                 assert_eq!(arguments, vec![Literal::U16(0xab), Literal::Bool(false)]);
@@ -380,9 +443,8 @@ mod tests {
 
     #[test]
     fn argument0_one_argument_test() {
-        let constants = BTreeMap::new();
         assert_matches!(
-            argument0(&constants)("(0xab~u16)"),
+            argument0("(0xab~u16)"),
             Ok((input, arguments)) => {
                 assert_eq!(input, "");
                 assert_eq!(arguments, vec![Literal::U16(0xab)]);
@@ -392,9 +454,8 @@ mod tests {
 
     #[test]
     fn argument0_no_arguments_test() {
-        let constants = BTreeMap::new();
         assert_matches!(
-            argument0(&constants)("(  )"),
+            argument0("(  )"),
             Ok((input, arguments)) => {
                 assert_eq!(input, "");
                 assert_eq!(arguments, vec![]);
@@ -404,9 +465,8 @@ mod tests {
 
     #[test]
     fn argument0_empty_test() {
-        let constants = BTreeMap::new();
         assert_matches!(
-            argument0(&constants)(""),
+            argument0(""),
             Err(NomErr::Error(ParserError::Base {
                 location,
                 kind,
