@@ -37,6 +37,7 @@ mod tests {
     use super::*;
 
     use ross_protocol::event::message::MessageValue;
+    use ross_protocol::event::bcm::BcmValue;
 
     use crate::{impl_tests_for_item_arg0, impl_tests_for_item_arg1, impl_tests_for_item_arg3};
 
@@ -61,7 +62,7 @@ mod tests {
         BcmChangeBrightnessProducer,
         ("0xabab~u16", 0xabab),
         ("0x01~u8", 0x01),
-        ("0xff~u8", 0xff)
+        ("#234567", BcmValue::Rgb(0x23, 0x45, 0x67))
     );
     impl_tests_for_item_arg3!(
         bcm_change_brightness_state_producer,

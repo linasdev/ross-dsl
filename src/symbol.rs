@@ -71,3 +71,4 @@ implement_symbol_parser!(open_brace, '{');
 implement_symbol_parser!(close_brace, '}');
 implement_symbol_parser!(equal_sign, '=');
 implement_symbol_parser!(double_quote, '"');
+implement_symbol_parser!(hashtag, '#');
