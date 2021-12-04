@@ -17,6 +17,7 @@ use crate::statement::const_statement::const_statement;
 use crate::statement::do_statement::do_statement;
 use crate::statement::let_statement::let_statement;
 use crate::statement::send_statement::send_statement;
+use crate::statement::peripheral_statement::peripheral_statement;
 use crate::symbol::{close_parenthesis, comma, open_parenthesis};
 
 macro_rules! prepare_constant {
@@ -29,6 +30,7 @@ pub struct Parser {}
 
 impl Parser {
     pub fn parse<'a, 'b>(text: &'a str) -> Result<Config, ParserError<String>> {
+        let mut peripherals = BTreeMap::new();
         let mut initial_state = BTreeMap::new();
         let mut constants = BTreeMap::new();
         let mut event_processors = vec![];
@@ -40,6 +42,17 @@ impl Parser {
 
         while commentless_text.len() != 0 {
             let mut errors = vec![];
+
+            match preceded(multispace0, peripheral_statement)(commentless_text) {
+                Ok((input, (index, peripheral))) => {
+                    peripherals.insert(index, peripheral);
+                    commentless_text = input;
+                    continue;
+                }
+                Err(NomErr::Error(err)) => errors.push(err),
+                Err(NomErr::Failure(err)) => return Err(err.into()),
+                _ => {}
+            }
 
             match preceded(multispace0, let_statement)(commentless_text) {
                 Ok((input, (name, value))) => {
@@ -104,6 +117,7 @@ impl Parser {
         }
 
         Ok(Config {
+            peripherals,
             initial_state,
             event_processors,
         })
