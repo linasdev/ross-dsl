@@ -12,12 +12,12 @@ use ross_config::config::Config;
 use ross_protocol::event::event_code::*;
 
 use crate::error::{ErrorKind, Expectation, ParserError};
-use crate::literal::{literal_or_constant, literal, Literal};
+use crate::literal::{literal, literal_or_constant, Literal};
 use crate::statement::const_statement::const_statement;
 use crate::statement::do_statement::do_statement;
 use crate::statement::let_statement::let_statement;
-use crate::statement::send_statement::send_statement;
 use crate::statement::peripheral_statement::peripheral_statement;
+use crate::statement::send_statement::send_statement;
 use crate::symbol::{close_parenthesis, comma, open_parenthesis};
 
 macro_rules! prepare_constant {
@@ -235,10 +235,7 @@ pub fn argument_or_constant0<'a>(
 pub fn argument0(text: &str) -> IResult<&str, Vec<Literal>, ParserError<&str>> {
     delimited(
         terminated(open_parenthesis, multispace0),
-        separated_list0(
-            comma,
-            delimited(multispace0, literal, multispace0),
-        ),
+        separated_list0(comma, delimited(multispace0, literal, multispace0)),
         close_parenthesis,
     )(text)
 }

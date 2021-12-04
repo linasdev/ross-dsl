@@ -15,8 +15,10 @@ pub fn filter<'a>(
     constants: &'a BTreeMap<&str, Literal>,
 ) -> impl FnMut(&str) -> IResult<&str, Box<dyn Filter>, ParserError<&str>> + 'a {
     move |text| {
-        let (input, (name, arguments)) =
-            terminated(pair(name_parser, argument_or_constant0(constants)), semicolon)(text)?;
+        let (input, (name, arguments)) = terminated(
+            pair(name_parser, argument_or_constant0(constants)),
+            semicolon,
+        )(text)?;
 
         impl_item_arg1!(input, name, arguments, ValueEqualToConstFilter);
         impl_item_arg2!(input, name, arguments, StateEqualToConstFilter);

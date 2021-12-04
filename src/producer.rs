@@ -15,8 +15,10 @@ pub fn producer<'a>(
     constants: &'a BTreeMap<&str, Literal>,
 ) -> impl FnMut(&str) -> IResult<&str, Box<dyn Producer>, ParserError<&str>> + 'a {
     move |text| {
-        let (input, (name, arguments)) =
-            terminated(pair(name_parser, argument_or_constant0(constants)), semicolon)(text)?;
+        let (input, (name, arguments)) = terminated(
+            pair(name_parser, argument_or_constant0(constants)),
+            semicolon,
+        )(text)?;
 
         impl_item_arg0!(input, name, arguments, NoneProducer);
         impl_item_arg1!(input, name, arguments, PacketProducer);
@@ -36,8 +38,8 @@ pub fn producer<'a>(
 mod tests {
     use super::*;
 
-    use ross_protocol::event::message::MessageValue;
     use ross_protocol::event::bcm::BcmValue;
+    use ross_protocol::event::message::MessageValue;
 
     use crate::{impl_tests_for_item_arg0, impl_tests_for_item_arg1, impl_tests_for_item_arg3};
 

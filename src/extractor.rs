@@ -14,8 +14,10 @@ pub fn extractor<'a>(
     constants: &'a BTreeMap<&str, Literal>,
 ) -> impl FnMut(&str) -> IResult<&str, Box<dyn Extractor>, ParserError<&str>> + 'a {
     move |text| {
-        let (input, (name, arguments)) =
-            terminated(pair(name_parser, argument_or_constant0(constants)), semicolon)(text)?;
+        let (input, (name, arguments)) = terminated(
+            pair(name_parser, argument_or_constant0(constants)),
+            semicolon,
+        )(text)?;
 
         impl_item_arg0!(input, name, arguments, NoneExtractor);
         impl_item_arg0!(input, name, arguments, PacketExtractor);
