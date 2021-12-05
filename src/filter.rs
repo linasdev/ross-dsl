@@ -34,6 +34,7 @@ pub fn filter<'a>(
         impl_item_arg2!(input, name, arguments, StateMoreThanConstFilter);
         impl_item_arg2!(input, name, arguments, StateLessThatConstFilter);
         impl_item_arg2!(input, name, arguments, SetStateToStateFilter);
+        impl_item_arg2!(input, name, arguments, StateEqualToStateFilter);
 
         Err(Err::Error(ParserError::Base {
             location: name,
@@ -151,6 +152,13 @@ mod tests {
         set_state_to_state_filter,
         filter,
         SetStateToStateFilter,
+        ("0xabababab~u32", 0xabab_abab),
+        ("0xbabababa~u32", 0xbaba_baba)
+    );
+    impl_tests_for_item_arg2!(
+        state_equal_to_state_filter,
+        filter,
+        StateEqualToStateFilter,
         ("0xabababab~u32", 0xabab_abab),
         ("0xbabababa~u32", 0xbaba_baba)
     );
