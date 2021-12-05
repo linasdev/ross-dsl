@@ -9,7 +9,7 @@ use crate::error::{ErrorKind, ParserError};
 use crate::literal::Literal;
 use crate::parser::{argument_or_constant0, name_parser};
 use crate::symbol::semicolon;
-use crate::{impl_item_arg0, impl_item_arg1, impl_item_arg3, impl_item_arg4};
+use crate::{impl_item_arg0, impl_item_arg1, impl_item_arg2, impl_item_arg3, impl_item_arg4};
 
 pub fn producer<'a>(
     constants: &'a BTreeMap<&str, Literal>,
@@ -27,6 +27,9 @@ pub fn producer<'a>(
         impl_item_arg3!(input, name, arguments, BcmChangeBrightnessStateProducer);
         impl_item_arg4!(input, name, arguments, BcmAnimateBrightnessProducer);
         impl_item_arg4!(input, name, arguments, BcmAnimateBrightnessStateProducer);
+        impl_item_arg3!(input, name, arguments, RelaySetStateProducer);
+        impl_item_arg3!(input, name, arguments, RelaySetStateStateProducer);
+        impl_item_arg2!(input, name, arguments, RelayFlipStateProducer);
 
         Err(Err::Error(ParserError::Base {
             location: name,
@@ -44,8 +47,8 @@ mod tests {
     use ross_protocol::event::message::MessageValue;
 
     use crate::{
-        impl_tests_for_item_arg0, impl_tests_for_item_arg1, impl_tests_for_item_arg3,
-        impl_tests_for_item_arg4,
+        impl_tests_for_item_arg0, impl_tests_for_item_arg1, impl_tests_for_item_arg2,
+        impl_tests_for_item_arg3, impl_tests_for_item_arg4,
     };
 
     impl_tests_for_item_arg0!(none_producer, producer, NoneProducer);
@@ -96,5 +99,28 @@ mod tests {
         ("0x01~u8", 0x01),
         ("0xabababab~u32", 0xabab_abab),
         ("0xffffffff~u32", 0xffff_ffff)
+    );
+    impl_tests_for_item_arg3!(
+        relay_set_state_producer,
+        producer,
+        RelaySetStateProducer,
+        ("0xabab~u16", 0xabab),
+        ("0x01~u8", 0x01),
+        ("true", true)
+    );
+    impl_tests_for_item_arg3!(
+        relay_set_state_state_producer,
+        producer,
+        RelaySetStateStateProducer,
+        ("0xabab~u16", 0xabab),
+        ("0x01~u8", 0x01),
+        ("0xffffffff~u32", 0xffff_ffff)
+    );
+    impl_tests_for_item_arg2!(
+        relay_flip_state_producer,
+        producer,
+        RelayFlipStateProducer,
+        ("0xabab~u16", 0xabab),
+        ("0x01~u8", 0x01)
     );
 }

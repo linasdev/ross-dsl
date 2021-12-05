@@ -277,6 +277,46 @@ impl TryFrom<Literal> for u32 {
     }
 }
 
+impl TryFrom<Literal> for bool {
+    type Error = ParserError<&'static str>;
+
+    fn try_from(literal: Literal) -> Result<Self, Self::Error> {
+        match literal {
+            Literal::U8(_) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("u8", "bool"),
+                child: None,
+            }),
+            Literal::U16(_) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("u16", "bool"),
+                child: None,
+            }),
+            Literal::U32(_) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("u32", "bool"),
+                child: None,
+            }),
+            Literal::Bool(value) => Ok(value),
+            Literal::String(_) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("string", "bool"),
+                child: None,
+            }),
+            Literal::Rgb(_, _, _) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("rgb", "bool"),
+                child: None,
+            }),
+            Literal::Rgbw(_, _, _, _) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("rgbw", "bool"),
+                child: None,
+            }),
+        }
+    }
+}
+
 impl TryFrom<Literal> for Value {
     type Error = ParserError<&'static str>;
 
