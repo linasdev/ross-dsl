@@ -89,7 +89,7 @@ mod tests {
         ("#234567", BcmValue::Rgb(0x23, 0x45, 0x67))
     );
     impl_tests_for_item_arg4!(
-        bcm_animate_brightness_producer,
+        bcm_animate_brightness_state_producer,
         producer,
         BcmAnimateBrightnessStateProducer,
         ("0xabab~u16", 0xabab),
