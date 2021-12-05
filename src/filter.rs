@@ -32,6 +32,8 @@ pub fn filter<'a>(
         impl_item_arg1!(input, name, arguments, FlipStateFilter);
         impl_item_arg1!(input, name, arguments, TimeMatchesCronExpressionFilter);
         impl_item_arg2!(input, name, arguments, StateMoreThanConstFilter);
+        impl_item_arg2!(input, name, arguments, StateLessThatConstFilter);
+        impl_item_arg2!(input, name, arguments, SetStateToStateFilter);
 
         Err(Err::Error(ParserError::Base {
             location: name,
@@ -137,5 +139,19 @@ mod tests {
         StateMoreThanConstFilter,
         ("0xabababab~u32", 0xabab_abab),
         ("0xbabababa~u32", Value::U32(0xbaba_baba))
+    );
+    impl_tests_for_item_arg2!(
+        state_less_than_const_filter,
+        filter,
+        StateLessThatConstFilter,
+        ("0xabababab~u32", 0xabab_abab),
+        ("0xbabababa~u32", Value::U32(0xbaba_baba))
+    );
+    impl_tests_for_item_arg2!(
+        set_state_to_state_filter,
+        filter,
+        SetStateToStateFilter,
+        ("0xabababab~u32", 0xabab_abab),
+        ("0xbabababa~u32", 0xbaba_baba)
     );
 }
