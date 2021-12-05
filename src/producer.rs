@@ -9,7 +9,7 @@ use crate::error::{ErrorKind, ParserError};
 use crate::literal::Literal;
 use crate::parser::{argument_or_constant0, name_parser};
 use crate::symbol::semicolon;
-use crate::{impl_item_arg0, impl_item_arg1, impl_item_arg3};
+use crate::{impl_item_arg0, impl_item_arg1, impl_item_arg3, impl_item_arg4};
 
 pub fn producer<'a>(
     constants: &'a BTreeMap<&str, Literal>,
@@ -25,6 +25,7 @@ pub fn producer<'a>(
         impl_item_arg3!(input, name, arguments, MessageProducer);
         impl_item_arg3!(input, name, arguments, BcmChangeBrightnessProducer);
         impl_item_arg3!(input, name, arguments, BcmChangeBrightnessStateProducer);
+        impl_item_arg4!(input, name, arguments, BcmAnimateBrightnessProducer);
 
         Err(Err::Error(ParserError::Base {
             location: name,
@@ -41,7 +42,10 @@ mod tests {
     use ross_protocol::event::bcm::BcmValue;
     use ross_protocol::event::message::MessageValue;
 
-    use crate::{impl_tests_for_item_arg0, impl_tests_for_item_arg1, impl_tests_for_item_arg3};
+    use crate::{
+        impl_tests_for_item_arg0, impl_tests_for_item_arg1, impl_tests_for_item_arg3,
+        impl_tests_for_item_arg4,
+    };
 
     impl_tests_for_item_arg0!(none_producer, producer, NoneProducer);
     impl_tests_for_item_arg1!(
@@ -73,5 +77,14 @@ mod tests {
         ("0xabab~u16", 0xabab),
         ("0x01~u8", 0x01),
         ("0xabababab~u32", 0xabab_abab)
+    );
+    impl_tests_for_item_arg4!(
+        bcm_animate_brightness_producer,
+        producer,
+        BcmAnimateBrightnessProducer,
+        ("0xabab~u16", 0xabab),
+        ("0x01~u8", 0x01),
+        ("0xabababab~u32", 0xabab_abab),
+        ("#234567", BcmValue::Rgb(0x23, 0x45, 0x67))
     );
 }
