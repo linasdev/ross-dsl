@@ -26,6 +26,7 @@ pub fn producer<'a>(
         impl_item_arg3!(input, name, arguments, BcmChangeBrightnessProducer);
         impl_item_arg3!(input, name, arguments, BcmChangeBrightnessStateProducer);
         impl_item_arg4!(input, name, arguments, BcmAnimateBrightnessProducer);
+        impl_item_arg4!(input, name, arguments, BcmAnimateBrightnessStateProducer);
 
         Err(Err::Error(ParserError::Base {
             location: name,
@@ -86,5 +87,14 @@ mod tests {
         ("0x01~u8", 0x01),
         ("0xabababab~u32", 0xabab_abab),
         ("#234567", BcmValue::Rgb(0x23, 0x45, 0x67))
+    );
+    impl_tests_for_item_arg4!(
+        bcm_animate_brightness_producer,
+        producer,
+        BcmAnimateBrightnessStateProducer,
+        ("0xabab~u16", 0xabab),
+        ("0x01~u8", 0x01),
+        ("0xabababab~u32", 0xabab_abab),
+        ("0xffffffff~u32", 0xffff_ffff)
     );
 }
