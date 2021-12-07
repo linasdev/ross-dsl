@@ -34,7 +34,7 @@ pub fn send_statement<'a>(
 
             map(pair_parser, |((matcher, creators), additional_matcher)| {
                 (
-                    Matcher::And(Box::new(matcher), Box::new(additional_matcher)),
+                    Matcher::And(Box::new(additional_matcher), Box::new(matcher)),
                     creators,
                 )
             })
