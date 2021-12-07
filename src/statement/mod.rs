@@ -5,3 +5,4 @@ pub mod let_statement;
 pub mod match_statement;
 pub mod peripheral_statement;
 pub mod send_statement;
+pub mod set_statement;

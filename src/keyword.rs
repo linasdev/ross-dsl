@@ -99,6 +99,8 @@ implement_keyword_parser!(event_keyword, "event");
 implement_keyword_parser!(producer_keyword, "producer");
 implement_keyword_parser!(tick_keyword, "tick");
 implement_keyword_parser!(fire_keyword, "fire");
+implement_keyword_parser!(set_keyword, "set");
+implement_keyword_parser!(on_keyword, "on");
 implement_keyword_parser!(true_keyword, "true");
 implement_keyword_parser!(false_keyword, "false");
 implement_keyword_parser!(not_keyword, "not");

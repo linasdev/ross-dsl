@@ -32,6 +32,7 @@ impl Parser {
     pub fn parse<'a, 'b>(text: &'a str) -> Result<Config, ParserError<String>> {
         let mut peripherals = BTreeMap::new();
         let mut initial_state = BTreeMap::new();
+        let mut state_variables = BTreeMap::new();
         let mut constants = BTreeMap::new();
         let mut event_processors = vec![];
 
@@ -58,6 +59,7 @@ impl Parser {
                 Ok((input, (name, value))) => {
                     let initial_state_index = initial_state.len() as u32;
                     initial_state.insert(initial_state_index, value.try_into()?);
+                    state_variables.insert(name, initial_state_index);
                     constants.insert(name, Literal::U32(initial_state_index));
                     commentless_text = input;
 

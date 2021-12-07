@@ -10,6 +10,7 @@ pub enum Expectation {
     ArgumentCount(usize, usize),
     Keyword(&'static str),
     Symbol(char),
+    StateVariable,
     Name,
     Literal,
     Value,
@@ -30,6 +31,7 @@ impl Display for Expectation {
             }
             Expectation::Keyword(keyword) => write!(f, "{:?}", keyword),
             Expectation::Symbol(symbol) => write!(f, "{:?}", symbol),
+            Expectation::StateVariable => write!(f, "a state variable"),
             Expectation::Name => write!(f, "a name"),
             Expectation::Literal => write!(f, "a literal"),
             Expectation::Value => write!(f, "a value"),

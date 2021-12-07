@@ -30,6 +30,24 @@ pub enum Literal {
     Rgbw(u8, u8, u8, u8),
 }
 
+pub fn state_variable<'a>(
+    state_variables: &'a BTreeMap<&str, u32>,
+) -> impl FnMut(&str) -> IResult<&str, u32, ParserError<&str>> + 'a {
+    move |text| {
+        let (input, name) = name_parser(text)?;
+
+        if let Some(state_index) = state_variables.get(name) {
+            Ok((input, *state_index))
+        } else {
+            Err(NomErr::Error(ParserError::Base {
+                location: text,
+                kind: ErrorKind::Expected(Expectation::StateVariable),
+                child: None,
+            }))
+        }
+    }
+}
+
 pub fn literal_or_constant<'a>(
     constants: &'a BTreeMap<&str, Literal>,
 ) -> impl FnMut(&str) -> IResult<&str, Literal, ParserError<&str>> + 'a {
