@@ -126,9 +126,10 @@ mod tests {
         let mut state_variables = BTreeMap::new();
         state_variables.insert("button_pressed", 0);
 
-        let (input, event_processor) =
-            set_statement(&constants, &state_variables)("set button_pressed to true on 0xabab~u16 from 0x0123~u16;input")
-                .unwrap();
+        let (input, event_processor) = set_statement(&constants, &state_variables)(
+            "set button_pressed to true on 0xabab~u16 from 0x0123~u16;input",
+        )
+        .unwrap();
 
         assert_eq!(input, "input");
 
@@ -179,7 +180,9 @@ mod tests {
         state_variables.insert("button_pressed", 0);
 
         assert_matches!(
-            set_statement(&constants, &state_variables)("set button_pressed to true on 0xabab~u16 from 0x0123~u16"),
+            set_statement(&constants, &state_variables)(
+                "set button_pressed to true on 0xabab~u16 from 0x0123~u16"
+            ),
             Err(NomErr::Error(ParserError::Base {
                 location: _,
                 kind: ErrorKind::Nom(NomErrorKind::Alt),
@@ -195,7 +198,9 @@ mod tests {
         state_variables.insert("button_pressed", 0);
 
         assert_matches!(
-            set_statement(&constants, &state_variables)("set button_pressed to true on 0xabab~u16 0x0123~u16;"),
+            set_statement(&constants, &state_variables)(
+                "set button_pressed to true on 0xabab~u16 0x0123~u16;"
+            ),
             Err(NomErr::Failure(ParserError::Base {
                 location: _,
                 kind: ErrorKind::Expected(Expectation::Keyword("from")),
@@ -211,7 +216,9 @@ mod tests {
         state_variables.insert("button_pressed", 0);
 
         assert_matches!(
-            set_statement(&constants, &state_variables)("set button_pressed true on 0xabab~u16 from 0x0123~u16;"),
+            set_statement(&constants, &state_variables)(
+                "set button_pressed true on 0xabab~u16 from 0x0123~u16;"
+            ),
             Err(NomErr::Failure(ParserError::Base {
                 location: _,
                 kind: ErrorKind::Expected(Expectation::Keyword("to")),
@@ -227,7 +234,9 @@ mod tests {
         state_variables.insert("button_pressed", 0);
 
         assert_matches!(
-            set_statement(&constants, &state_variables)("set button_pressed to true 0xabab~u16 from 0x0123~u16;"),
+            set_statement(&constants, &state_variables)(
+                "set button_pressed to true 0xabab~u16 from 0x0123~u16;"
+            ),
             Err(NomErr::Failure(ParserError::Base {
                 location: _,
                 kind: ErrorKind::Expected(Expectation::Keyword("on")),
@@ -299,7 +308,7 @@ mod tests {
                             format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0x0123))),
                         );
                     });
-    
+
                     assert_matches!(*matcher2, Matcher::Single {extractor, filter} => {
                         assert_eq!(
                             format!("{:?}", extractor),
