@@ -1,19 +1,19 @@
-use nom::character::complete::alpha1;
 use nom::{Err as NomErr, IResult};
 
 use crate::error::{ErrorKind, Expectation, ParserError};
+use crate::parser::name_parser;
 
 macro_rules! implement_keyword_parser {
     ($parser_name:ident, $keyword:expr) => {
         pub fn $parser_name(text: &str) -> IResult<&str, &str, ParserError<&str>> {
-            match alpha1(text) {
+            match name_parser(text) {
                 Ok((input, $keyword)) => Ok((input, $keyword)),
                 Ok((_, value)) => Err(NomErr::Error(ParserError::Base {
                     location: value,
                     kind: ErrorKind::Expected(Expectation::Keyword($keyword)),
                     child: None,
                 })),
-                Err(NomErr::Error(err)) => Err(NomErr::Error(ParserError::Base {
+                Err(NomErr::Error(err)) if matches!(&err, ParserError::Base { location: _, kind: ErrorKind::Expected(Expectation::Name), child: _ }) => Err(NomErr::Error(ParserError::Base {
                     location: text,
                     kind: ErrorKind::Expected(Expectation::Keyword($keyword)),
                     child: Some(Box::new(err)),
@@ -111,3 +111,5 @@ implement_keyword_parser!(bcm_keyword, "bcm");
 implement_keyword_parser!(single_keyword, "single");
 implement_keyword_parser!(rgb_keyword, "rgb");
 implement_keyword_parser!(rgbw_keyword, "rgbw");
+implement_keyword_parser!(relay_keyword, "relay");
+implement_keyword_parser!(double_exclusive_keyword, "double_exlusive");
