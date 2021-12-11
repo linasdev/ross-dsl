@@ -42,12 +42,12 @@ mod tests {
     use super::*;
 
     use ross_protocol::event::bcm::BcmValue;
-    use ross_protocol::event::relay::{RelayValue, RelayDoubleExclusiveValue};
     use ross_protocol::event::message::MessageValue;
+    use ross_protocol::event::relay::{RelayDoubleExclusiveValue, RelayValue};
 
     use crate::{
-        impl_tests_for_item_arg0, impl_tests_for_item_arg1,
-        impl_tests_for_item_arg3, impl_tests_for_item_arg4,
+        impl_tests_for_item_arg0, impl_tests_for_item_arg1, impl_tests_for_item_arg3,
+        impl_tests_for_item_arg4,
     };
 
     impl_tests_for_item_arg0!(none_producer, producer, NoneProducer);
@@ -105,6 +105,9 @@ mod tests {
         RelaySetValueProducer,
         ("0xabab~u16", 0xabab),
         ("0x01~u8", 0x01),
-        ("\"first\"", RelayValue::DoubleExclusive(RelayDoubleExclusiveValue::FirstChannelOn))
+        (
+            "\"first\"",
+            RelayValue::DoubleExclusive(RelayDoubleExclusiveValue::FirstChannelOn)
+        )
     );
 }

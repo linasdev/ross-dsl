@@ -12,8 +12,8 @@ use std::convert::TryFrom;
 use ross_config::cron::{CronExpression, CronField};
 use ross_config::Value;
 use ross_protocol::event::bcm::BcmValue;
-use ross_protocol::event::relay::{RelayValue, RelayDoubleExclusiveValue};
 use ross_protocol::event::message::MessageValue;
+use ross_protocol::event::relay::{RelayDoubleExclusiveValue, RelayValue};
 
 use crate::error::{ErrorKind, Expectation, ParserError};
 use crate::keyword::{false_keyword, true_keyword};
@@ -448,15 +448,21 @@ impl TryFrom<Literal> for RelayValue {
             }),
             Literal::Bool(value) => Ok(RelayValue::Single(value)),
             Literal::String(value) => match value.as_str() {
-                "first" => Ok(RelayValue::DoubleExclusive(RelayDoubleExclusiveValue::FirstChannelOn)),
-                "second" => Ok(RelayValue::DoubleExclusive(RelayDoubleExclusiveValue::SecondChannelOn)),
-                "none" => Ok(RelayValue::DoubleExclusive(RelayDoubleExclusiveValue::NoChannelOn)),
+                "first" => Ok(RelayValue::DoubleExclusive(
+                    RelayDoubleExclusiveValue::FirstChannelOn,
+                )),
+                "second" => Ok(RelayValue::DoubleExclusive(
+                    RelayDoubleExclusiveValue::SecondChannelOn,
+                )),
+                "none" => Ok(RelayValue::DoubleExclusive(
+                    RelayDoubleExclusiveValue::NoChannelOn,
+                )),
                 _ => Err(ParserError::Base {
                     location: "",
                     kind: ErrorKind::Expected(Expectation::Value),
                     child: None,
-                })
-            }
+                }),
+            },
         }
     }
 }
