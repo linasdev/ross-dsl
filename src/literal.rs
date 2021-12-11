@@ -12,6 +12,7 @@ use std::convert::TryFrom;
 use ross_config::cron::{CronExpression, CronField};
 use ross_config::Value;
 use ross_protocol::event::bcm::BcmValue;
+use ross_protocol::event::relay::{RelayValue, RelayDoubleExclusiveValue};
 use ross_protocol::event::message::MessageValue;
 
 use crate::error::{ErrorKind, Expectation, ParserError};
@@ -411,6 +412,51 @@ impl TryFrom<Literal> for BcmValue {
                 kind: ErrorKind::CastFromToNotAllowed("string", "bcm value"),
                 child: None,
             }),
+        }
+    }
+}
+
+impl TryFrom<Literal> for RelayValue {
+    type Error = ParserError<&'static str>;
+
+    fn try_from(literal: Literal) -> Result<Self, Self::Error> {
+        match literal {
+            Literal::U8(_) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("u8", "relay value"),
+                child: None,
+            }),
+            Literal::U16(_) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("u16", "relay value"),
+                child: None,
+            }),
+            Literal::U32(_) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("u32", "relay value"),
+                child: None,
+            }),
+            Literal::Rgb(_, _, _) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("rgb", "relay value"),
+                child: None,
+            }),
+            Literal::Rgbw(_, _, _, _) => Err(ParserError::Base {
+                location: "",
+                kind: ErrorKind::CastFromToNotAllowed("rgbw", "relay value"),
+                child: None,
+            }),
+            Literal::Bool(value) => Ok(RelayValue::Single(value)),
+            Literal::String(value) => match value.as_str() {
+                "first" => Ok(RelayValue::DoubleExclusive(RelayDoubleExclusiveValue::FirstChannelOn)),
+                "second" => Ok(RelayValue::DoubleExclusive(RelayDoubleExclusiveValue::SecondChannelOn)),
+                "none" => Ok(RelayValue::DoubleExclusive(RelayDoubleExclusiveValue::NoChannelOn)),
+                _ => Err(ParserError::Base {
+                    location: "",
+                    kind: ErrorKind::Expected(Expectation::Value),
+                    child: None,
+                })
+            }
         }
     }
 }
