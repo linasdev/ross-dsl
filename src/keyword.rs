@@ -13,7 +13,11 @@ macro_rules! implement_keyword_parser {
                     kind: ErrorKind::Expected(Expectation::Keyword($keyword)),
                     child: None,
                 })),
-                Err(NomErr::Error(err)) if matches!(&err, ParserError::Base { location: _, kind: ErrorKind::Expected(Expectation::Name), child: _ }) => Err(NomErr::Error(ParserError::Base {
+                Err(NomErr::Error(err)) if matches!(&err, ParserError::Base {
+                    location: _,
+                    kind: ErrorKind::Expected(Expectation::Name),
+                    child: _
+                }) => Err(NomErr::Error(ParserError::Base {
                     location: text,
                     kind: ErrorKind::Expected(Expectation::Keyword($keyword)),
                     child: Some(Box::new(err)),
