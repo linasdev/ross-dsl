@@ -112,4 +112,4 @@ implement_keyword_parser!(single_keyword, "single");
 implement_keyword_parser!(rgb_keyword, "rgb");
 implement_keyword_parser!(rgbw_keyword, "rgbw");
 implement_keyword_parser!(relay_keyword, "relay");
-implement_keyword_parser!(double_exclusive_keyword, "double_exlusive");
+implement_keyword_parser!(double_exclusive_keyword, "double_exclusive");
