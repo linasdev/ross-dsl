@@ -44,7 +44,7 @@ impl Parser {
         while commentless_text.len() != 0 {
             let mut errors = vec![];
 
-            match preceded(multispace0, peripheral_statement)(commentless_text) {
+            match preceded(multispace0, peripheral_statement(&constants))(commentless_text) {
                 Ok((input, (index, peripheral))) => {
                     peripherals.insert(index, peripheral);
                     commentless_text = input;
