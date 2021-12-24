@@ -111,6 +111,7 @@ implement_keyword_parser!(not_keyword, "not");
 implement_keyword_parser!(or_keyword, "or");
 implement_keyword_parser!(and_keyword, "and");
 implement_keyword_parser!(peripheral_keyword, "peripheral");
+implement_keyword_parser!(pub_keyword, "pub");
 implement_keyword_parser!(bcm_keyword, "bcm");
 implement_keyword_parser!(single_keyword, "single");
 implement_keyword_parser!(rgb_keyword, "rgb");
