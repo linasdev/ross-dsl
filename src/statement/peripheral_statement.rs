@@ -11,8 +11,8 @@ use ross_config::peripheral::{BcmPeripheral, Peripheral, RelayPeripheral};
 
 use crate::error::{ErrorKind, Expectation, ParserError};
 use crate::keyword::{
-    bcm_keyword, double_exclusive_keyword, peripheral_keyword, relay_keyword, rgb_keyword,
-    rgbw_keyword, single_keyword, pub_keyword
+    bcm_keyword, double_exclusive_keyword, peripheral_keyword, pub_keyword, relay_keyword,
+    rgb_keyword, rgbw_keyword, single_keyword,
 };
 use crate::literal::{literal, Literal};
 use crate::parser::{argument0, argument_or_constant0};
@@ -23,29 +23,38 @@ pub fn peripheral_statement<'a>(
 ) -> impl FnMut(&str) -> IResult<&str, (u32, Peripheral), ParserError<&str>> + 'a {
     move |text| {
         let pub_peripheral_parser = {
-            let pub_keyword_parser = preceded(pub_keyword, preceded(multispace0, argument_or_constant0(constants)));
-            let tuple_parser = tuple((pub_keyword_parser, preceded(multispace1, base_syntax_parser)));
+            let pub_keyword_parser = preceded(
+                pub_keyword,
+                preceded(multispace0, argument_or_constant0(constants)),
+            );
+            let tuple_parser = tuple((
+                pub_keyword_parser,
+                preceded(multispace1, base_syntax_parser),
+            ));
 
-            map_res::<_, _, _, _, ParserError<&str>, _, _>(tuple_parser, |(gateway_addresses, peripheral)| {
-                let mut extra_gateway_addresses = vec![];
-                
-                for extra_gateway_address in gateway_addresses {
-                    extra_gateway_addresses.push(extra_gateway_address.try_into()?);
-                }
+            map_res::<_, _, _, _, ParserError<&str>, _, _>(
+                tuple_parser,
+                |(gateway_addresses, peripheral)| {
+                    let mut extra_gateway_addresses = vec![];
 
-                let new_peripheral = match peripheral.1 {
-                    Peripheral::Bcm(peripheral, mut gateway_addresses) => {
-                        gateway_addresses.append(&mut extra_gateway_addresses);
-                        Peripheral::Bcm(peripheral, gateway_addresses)
-                    },
-                    Peripheral::Relay(peripheral, mut gateway_addresses) => {
-                        gateway_addresses.append(&mut extra_gateway_addresses);
-                        Peripheral::Relay(peripheral, gateway_addresses)
-                    },
-                };
+                    for extra_gateway_address in gateway_addresses {
+                        extra_gateway_addresses.push(extra_gateway_address.try_into()?);
+                    }
 
-                Ok((peripheral.0, new_peripheral))
-            })
+                    let new_peripheral = match peripheral.1 {
+                        Peripheral::Bcm(peripheral, mut gateway_addresses) => {
+                            gateway_addresses.append(&mut extra_gateway_addresses);
+                            Peripheral::Bcm(peripheral, gateway_addresses)
+                        }
+                        Peripheral::Relay(peripheral, mut gateway_addresses) => {
+                            gateway_addresses.append(&mut extra_gateway_addresses);
+                            Peripheral::Relay(peripheral, gateway_addresses)
+                        }
+                    };
+
+                    Ok((peripheral.0, new_peripheral))
+                },
+            )
         };
 
         alt((pub_peripheral_parser, base_syntax_parser))(text)
@@ -338,7 +347,10 @@ mod tests {
         assert_eq!(index, 0x00);
         assert_eq!(
             peripheral,
-            Peripheral::Relay(RelayPeripheral::DoubleExclusive(0x01, 0x23), vec![0x00, 0x01])
+            Peripheral::Relay(
+                RelayPeripheral::DoubleExclusive(0x01, 0x23),
+                vec![0x00, 0x01]
+            )
         );
     }
 }
