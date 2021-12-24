@@ -51,7 +51,7 @@ pub fn peripheral_statement(text: &str) -> IResult<&str, (u32, Peripheral), Pars
                     input,
                     (
                         peripheral_index,
-                        Peripheral::Bcm(BcmPeripheral::Single(channel)),
+                        Peripheral::Bcm(BcmPeripheral::Single(channel), vec![]),
                     ),
                 ))
             } else {
@@ -87,7 +87,7 @@ pub fn peripheral_statement(text: &str) -> IResult<&str, (u32, Peripheral), Pars
                     input,
                     (
                         peripheral_index,
-                        Peripheral::Bcm(BcmPeripheral::Rgb(r, g, b)),
+                        Peripheral::Bcm(BcmPeripheral::Rgb(r, g, b), vec![]),
                     ),
                 ))
             } else {
@@ -128,7 +128,7 @@ pub fn peripheral_statement(text: &str) -> IResult<&str, (u32, Peripheral), Pars
                     input,
                     (
                         peripheral_index,
-                        Peripheral::Bcm(BcmPeripheral::Rgbw(r, g, b, w)),
+                        Peripheral::Bcm(BcmPeripheral::Rgbw(r, g, b, w), vec![]),
                     ),
                 ))
             } else {
@@ -154,7 +154,7 @@ pub fn peripheral_statement(text: &str) -> IResult<&str, (u32, Peripheral), Pars
                     input,
                     (
                         peripheral_index,
-                        Peripheral::Relay(RelayPeripheral::Single(channel)),
+                        Peripheral::Relay(RelayPeripheral::Single(channel), vec![]),
                     ),
                 ))
             } else {
@@ -185,7 +185,7 @@ pub fn peripheral_statement(text: &str) -> IResult<&str, (u32, Peripheral), Pars
                     input,
                     (
                         peripheral_index,
-                        Peripheral::Relay(RelayPeripheral::DoubleExclusive(channel1, channel2)),
+                        Peripheral::Relay(RelayPeripheral::DoubleExclusive(channel1, channel2), vec![]),
                     ),
                 ))
             } else {
@@ -209,16 +209,14 @@ pub fn peripheral_statement(text: &str) -> IResult<&str, (u32, Peripheral), Pars
 mod tests {
     use super::*;
 
-    use cool_asserts::assert_matches;
-
     #[test]
     fn bcm_single_test() {
         let (input, (index, peripheral)) =
             peripheral_statement("peripheral 0x00~u32 bcm single(0x01~u8);input").unwrap();
 
-        assert_matches!(input, "input");
-        assert_matches!(index, 0x00);
-        assert_matches!(peripheral, Peripheral::Bcm(BcmPeripheral::Single(0x01)));
+        assert_eq!(input, "input");
+        assert_eq!(index, 0x00);
+        assert_eq!(peripheral, Peripheral::Bcm(BcmPeripheral::Single(0x01), vec![]));
     }
 
     #[test]
@@ -227,11 +225,11 @@ mod tests {
             peripheral_statement("peripheral 0x00~u32 bcm rgb(0x01~u8, 0x23~u8, 0x45~u8);input")
                 .unwrap();
 
-        assert_matches!(input, "input");
-        assert_matches!(index, 0x00);
-        assert_matches!(
+                assert_eq!(input, "input");
+        assert_eq!(index, 0x00);
+        assert_eq!(
             peripheral,
-            Peripheral::Bcm(BcmPeripheral::Rgb(0x01, 0x23, 0x45))
+            Peripheral::Bcm(BcmPeripheral::Rgb(0x01, 0x23, 0x45), vec![])
         );
     }
 
@@ -242,11 +240,11 @@ mod tests {
         )
         .unwrap();
 
-        assert_matches!(input, "input");
-        assert_matches!(index, 0x00);
-        assert_matches!(
+        assert_eq!(input, "input");
+        assert_eq!(index, 0x00);
+        assert_eq!(
             peripheral,
-            Peripheral::Bcm(BcmPeripheral::Rgbw(0x01, 0x23, 0x45, 0x67))
+            Peripheral::Bcm(BcmPeripheral::Rgbw(0x01, 0x23, 0x45, 0x67), vec![])
         );
     }
 
@@ -255,9 +253,9 @@ mod tests {
         let (input, (index, peripheral)) =
             peripheral_statement("peripheral 0x00~u32 relay single(0x01~u8);input").unwrap();
 
-        assert_matches!(input, "input");
-        assert_matches!(index, 0x00);
-        assert_matches!(peripheral, Peripheral::Relay(RelayPeripheral::Single(0x01)));
+        assert_eq!(input, "input");
+        assert_eq!(index, 0x00);
+        assert_eq!(peripheral, Peripheral::Relay(RelayPeripheral::Single(0x01), vec![]));
     }
 
     #[test]
@@ -267,11 +265,11 @@ mod tests {
         )
         .unwrap();
 
-        assert_matches!(input, "input");
-        assert_matches!(index, 0x00);
-        assert_matches!(
+        assert_eq!(input, "input");
+        assert_eq!(index, 0x00);
+        assert_eq!(
             peripheral,
-            Peripheral::Relay(RelayPeripheral::DoubleExclusive(0x01, 0x23))
+            Peripheral::Relay(RelayPeripheral::DoubleExclusive(0x01, 0x23), vec![])
         );
     }
 }
