@@ -107,7 +107,9 @@ impl Parser {
                 _ => {}
             }
 
-            match preceded(multispace0, set_statement(&constants, &state_variables))(commentless_text) {
+            match preceded(multispace0, set_statement(&constants, &state_variables))(
+                commentless_text,
+            ) {
                 Ok((input, event_processor)) => {
                     event_processors.push(event_processor);
                     commentless_text = input;
