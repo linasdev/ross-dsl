@@ -18,6 +18,7 @@ use crate::statement::do_statement::do_statement;
 use crate::statement::let_statement::let_statement;
 use crate::statement::peripheral_statement::peripheral_statement;
 use crate::statement::send_statement::send_statement;
+use crate::statement::set_statement::set_statement;
 use crate::symbol::{close_parenthesis, comma, open_parenthesis};
 
 macro_rules! prepare_constant {
@@ -95,6 +96,18 @@ impl Parser {
             }
 
             match preceded(multispace0, do_statement(&constants))(commentless_text) {
+                Ok((input, event_processor)) => {
+                    event_processors.push(event_processor);
+                    commentless_text = input;
+
+                    continue;
+                }
+                Err(NomErr::Error(err)) => errors.push(err),
+                Err(NomErr::Failure(err)) => return Err(err.into()),
+                _ => {}
+            }
+
+            match preceded(multispace0, set_statement(&constants, &state_variables))(commentless_text) {
                 Ok((input, event_processor)) => {
                     event_processors.push(event_processor);
                     commentless_text = input;
