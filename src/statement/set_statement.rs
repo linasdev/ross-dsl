@@ -34,7 +34,7 @@ pub fn set_statement<'a>(
 
             map(pair_parser, |((matcher, creators), additional_matcher)| {
                 (
-                    Matcher::And(Box::new(additional_matcher), Box::new(matcher)),
+                    Matcher::And(Box::new(matcher), Box::new(additional_matcher)),
                     creators,
                 )
             })
@@ -274,18 +274,7 @@ mod tests {
         assert_eq!(input, "input");
 
         assert_matches!(event_processor.matcher, Matcher::And(matcher1, matcher2) => {
-            assert_matches!(*matcher1, Matcher::Single {extractor, filter} => {
-                assert_eq!(
-                    format!("{:?}", extractor),
-                    format!("{:?}", EventCodeExtractor::new()),
-                );
-                assert_eq!(
-                    format!("{:?}", filter),
-                    format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xbaba))),
-                );
-            });
-
-            assert_matches!(*matcher2, Matcher::And(matcher1, matcher2) => {
+            assert_matches!(*matcher1, Matcher::And(matcher1, matcher2) => {
                 assert_matches!(*matcher1, Matcher::Single {extractor, filter} => {
                     assert_eq!(
                         format!("{:?}", extractor),
@@ -320,6 +309,17 @@ mod tests {
                         );
                     });
                 });
+            });
+
+            assert_matches!(*matcher2, Matcher::Single {extractor, filter} => {
+                assert_eq!(
+                    format!("{:?}", extractor),
+                    format!("{:?}", EventCodeExtractor::new()),
+                );
+                assert_eq!(
+                    format!("{:?}", filter),
+                    format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xbaba))),
+                );
             });
         });
 
