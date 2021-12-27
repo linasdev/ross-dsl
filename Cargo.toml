@@ -15,7 +15,7 @@ indent_write = "1.0.0"
 cool_asserts = "1.1.1"
 cron-parser = "0.7.9"
 ross-config = "2.23.0"
-ross-protocol = "1.34.0"
+ross-protocol = "2.0.0"
 
 [[example]]
 name = "save-button-state"
