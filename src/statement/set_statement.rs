@@ -32,18 +32,30 @@ pub fn set_statement<'a>(
                 additional_matcher_parser,
             );
 
-            map(pair_parser, |((matcher, creators), additional_matcher)| {
+            map(pair_parser, |(((combined_matcher, set_matcher), creators), additional_matcher)| {
                 (
-                    Matcher::And(Box::new(matcher), Box::new(additional_matcher)),
+                    Matcher::And(Box::new(combined_matcher), Box::new(Matcher::And(
+                        Box::new(additional_matcher),
+                        Box::new(set_matcher),
+                    ))),
                     creators,
                 )
             })
         };
 
-        let normal_syntax_parser = terminated(
-            base_syntax_parser(constants, state_variables),
-            preceded(multispace0, semicolon),
-        );
+        let normal_syntax_parser = {
+            let pair_parser = terminated(
+                base_syntax_parser(constants, state_variables),
+                preceded(multispace0, semicolon)
+            );
+
+            map(pair_parser, |((combined_matcher, set_matcher), creators)| {
+                (
+                    Matcher::And(Box::new(combined_matcher), Box::new(set_matcher)),
+                    creators
+                )
+            })
+        };
 
         let (input, (matcher, creators)) = alt((if_match_parser, normal_syntax_parser))(text)?;
 
@@ -54,7 +66,7 @@ pub fn set_statement<'a>(
 fn base_syntax_parser<'a>(
     constants: &'a BTreeMap<&str, Literal>,
     state_variables: &'a BTreeMap<&str, u32>,
-) -> impl FnMut(&str) -> IResult<&str, (Matcher, Vec<Creator>), ParserError<&str>> + 'a {
+) -> impl FnMut(&str) -> IResult<&str, ((Matcher, Matcher), Vec<Creator>), ParserError<&str>> + 'a {
     move |text| {
         let tuple_parser = tuple((
             state_variable(state_variables),
@@ -96,13 +108,10 @@ fn base_syntax_parser<'a>(
 
                 let combined_matcher = Matcher::And(
                     Box::new(event_matcher),
-                    Box::new(Matcher::And(
-                        Box::new(producer_matcher),
-                        Box::new(set_matcher),
-                    )),
+                    Box::new(producer_matcher),
                 );
 
-                Ok((combined_matcher, vec![]))
+                Ok(((combined_matcher, set_matcher), vec![]))
             },
         );
 
@@ -134,19 +143,19 @@ mod tests {
         assert_eq!(input, "input");
 
         assert_matches!(event_processor.matcher, Matcher::And(matcher1, matcher2) => {
-            assert_matches!(*matcher1, Matcher::Single {extractor, filter} => {
-                assert_eq!(
-                    format!("{:?}", extractor),
-                    format!("{:?}", EventCodeExtractor::new()),
-                );
-                assert_eq!(
-                    format!("{:?}", filter),
-                    format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xabab))),
-                );
-            });
-
-            assert_matches!(*matcher2, Matcher::And(matcher1, matcher2) => {
+            assert_matches!(*matcher1, Matcher::And(matcher1, matcher2) => {
                 assert_matches!(*matcher1, Matcher::Single {extractor, filter} => {
+                    assert_eq!(
+                        format!("{:?}", extractor),
+                        format!("{:?}", EventCodeExtractor::new()),
+                    );
+                    assert_eq!(
+                        format!("{:?}", filter),
+                        format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xabab))),
+                    );
+                });
+
+                assert_matches!(*matcher2, Matcher::Single {extractor, filter} => {
                     assert_eq!(
                         format!("{:?}", extractor),
                         format!("{:?}", EventProducerAddressExtractor::new()),
@@ -156,17 +165,17 @@ mod tests {
                         format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0x0123))),
                     );
                 });
+            });
 
-                assert_matches!(*matcher2, Matcher::Single {extractor, filter} => {
-                    assert_eq!(
-                        format!("{:?}", extractor),
-                        format!("{:?}", NoneExtractor::new()),
-                    );
-                    assert_eq!(
-                        format!("{:?}", filter),
-                        format!("{:?}", SetStateToConstFilter::new(0, Value::Bool(true))),
-                    );
-                });
+            assert_matches!(*matcher2, Matcher::Single {extractor, filter} => {
+                assert_eq!(
+                    format!("{:?}", extractor),
+                    format!("{:?}", NoneExtractor::new()),
+                );
+                assert_eq!(
+                    format!("{:?}", filter),
+                    format!("{:?}", SetStateToConstFilter::new(0, Value::Bool(true))),
+                );
             });
         });
 
@@ -286,40 +295,40 @@ mod tests {
                     );
                 });
 
-                assert_matches!(*matcher2, Matcher::And(matcher1, matcher2) => {
-                    assert_matches!(*matcher1, Matcher::Single {extractor, filter} => {
-                        assert_eq!(
-                            format!("{:?}", extractor),
-                            format!("{:?}", EventProducerAddressExtractor::new()),
-                        );
-                        assert_eq!(
-                            format!("{:?}", filter),
-                            format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0x0123))),
-                        );
-                    });
-
-                    assert_matches!(*matcher2, Matcher::Single {extractor, filter} => {
-                        assert_eq!(
-                            format!("{:?}", extractor),
-                            format!("{:?}", NoneExtractor::new()),
-                        );
-                        assert_eq!(
-                            format!("{:?}", filter),
-                            format!("{:?}", SetStateToConstFilter::new(0, Value::Bool(true))),
-                        );
-                    });
+                assert_matches!(*matcher2, Matcher::Single {extractor, filter} => {
+                    assert_eq!(
+                        format!("{:?}", extractor),
+                        format!("{:?}", EventProducerAddressExtractor::new()),
+                    );
+                    assert_eq!(
+                        format!("{:?}", filter),
+                        format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0x0123))),
+                    );
                 });
             });
 
-            assert_matches!(*matcher2, Matcher::Single {extractor, filter} => {
-                assert_eq!(
-                    format!("{:?}", extractor),
-                    format!("{:?}", EventCodeExtractor::new()),
-                );
-                assert_eq!(
-                    format!("{:?}", filter),
-                    format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xbaba))),
-                );
+            assert_matches!(*matcher2, Matcher::And(matcher1, matcher2) => {
+                assert_matches!(*matcher1, Matcher::Single {extractor, filter} => {
+                    assert_eq!(
+                        format!("{:?}", extractor),
+                        format!("{:?}", EventCodeExtractor::new()),
+                    );
+                    assert_eq!(
+                        format!("{:?}", filter),
+                        format!("{:?}", ValueEqualToConstFilter::new(Value::U16(0xbaba))),
+                    );
+                });
+
+                assert_matches!(*matcher2, Matcher::Single {extractor, filter} => {
+                    assert_eq!(
+                        format!("{:?}", extractor),
+                        format!("{:?}", NoneExtractor::new()),
+                    );
+                    assert_eq!(
+                        format!("{:?}", filter),
+                        format!("{:?}", SetStateToConstFilter::new(0, Value::Bool(true))),
+                    );
+                });
             });
         });
 
