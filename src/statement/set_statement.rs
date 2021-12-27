@@ -32,29 +32,38 @@ pub fn set_statement<'a>(
                 additional_matcher_parser,
             );
 
-            map(pair_parser, |(((combined_matcher, set_matcher), creators), additional_matcher)| {
-                (
-                    Matcher::And(Box::new(combined_matcher), Box::new(Matcher::And(
-                        Box::new(additional_matcher),
-                        Box::new(set_matcher),
-                    ))),
-                    creators,
-                )
-            })
+            map(
+                pair_parser,
+                |(((combined_matcher, set_matcher), creators), additional_matcher)| {
+                    (
+                        Matcher::And(
+                            Box::new(combined_matcher),
+                            Box::new(Matcher::And(
+                                Box::new(additional_matcher),
+                                Box::new(set_matcher),
+                            )),
+                        ),
+                        creators,
+                    )
+                },
+            )
         };
 
         let normal_syntax_parser = {
             let pair_parser = terminated(
                 base_syntax_parser(constants, state_variables),
-                preceded(multispace0, semicolon)
+                preceded(multispace0, semicolon),
             );
 
-            map(pair_parser, |((combined_matcher, set_matcher), creators)| {
-                (
-                    Matcher::And(Box::new(combined_matcher), Box::new(set_matcher)),
-                    creators
-                )
-            })
+            map(
+                pair_parser,
+                |((combined_matcher, set_matcher), creators)| {
+                    (
+                        Matcher::And(Box::new(combined_matcher), Box::new(set_matcher)),
+                        creators,
+                    )
+                },
+            )
         };
 
         let (input, (matcher, creators)) = alt((if_match_parser, normal_syntax_parser))(text)?;
@@ -106,10 +115,8 @@ fn base_syntax_parser<'a>(
                     filter: Box::new(SetStateToConstFilter::new(state_index, target_value)),
                 };
 
-                let combined_matcher = Matcher::And(
-                    Box::new(event_matcher),
-                    Box::new(producer_matcher),
-                );
+                let combined_matcher =
+                    Matcher::And(Box::new(event_matcher), Box::new(producer_matcher));
 
                 Ok(((combined_matcher, set_matcher), vec![]))
             },
