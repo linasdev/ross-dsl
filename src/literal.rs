@@ -27,8 +27,8 @@ pub enum Literal {
     U32(u32),
     Bool(bool),
     String(String),
-    Rgb(u8, u8, u8),
-    Rgbw(u8, u8, u8, u8),
+    Rgb(u8, u8, u8, u8),
+    Rgbw(u8, u8, u8, u8, u8),
 }
 
 pub fn state_variable<'a>(
@@ -125,13 +125,14 @@ pub fn literal(text: &str) -> IResult<&str, Literal, ParserError<&str>> {
         },
         Ok((input, (value, "string"))) => Ok((input, Literal::String(value.to_string()))),
         Ok((input, (value, "color"))) => {
-            if value.len() == 6 {
+            if value.len() == 8 {
                 let r = u8::from_str_radix(&value[0..2], 16);
                 let g = u8::from_str_radix(&value[2..4], 16);
                 let b = u8::from_str_radix(&value[4..6], 16);
+                let brightness = u8::from_str_radix(&value[6..8], 16);
 
-                if let (Ok(r), Ok(g), Ok(b)) = (r, g, b) {
-                    Ok((input, Literal::Rgb(r, g, b)))
+                if let (Ok(r), Ok(g), Ok(b), Ok(brightness)) = (r, g, b, brightness) {
+                    Ok((input, Literal::Rgb(r, g, b, brightness)))
                 } else {
                     Err(NomErr::Error(ParserError::Base {
                         location: text,
@@ -139,14 +140,15 @@ pub fn literal(text: &str) -> IResult<&str, Literal, ParserError<&str>> {
                         child: None,
                     }))
                 }
-            } else if value.len() == 8 {
+            } else if value.len() == 10 {
                 let r = u8::from_str_radix(&value[0..2], 16);
                 let g = u8::from_str_radix(&value[2..4], 16);
                 let b = u8::from_str_radix(&value[4..6], 16);
                 let w = u8::from_str_radix(&value[6..8], 16);
+                let brightness = u8::from_str_radix(&value[8..10], 16);
 
-                if let (Ok(r), Ok(g), Ok(b), Ok(w)) = (r, g, b, w) {
-                    Ok((input, Literal::Rgbw(r, g, b, w)))
+                if let (Ok(r), Ok(g), Ok(b), Ok(w), Ok(brightness)) = (r, g, b, w, brightness) {
+                    Ok((input, Literal::Rgbw(r, g, b, w, brightness)))
                 } else {
                     Err(NomErr::Error(ParserError::Base {
                         location: text,
@@ -202,12 +204,12 @@ impl TryFrom<Literal> for u8 {
                 kind: ErrorKind::CastFromToNotAllowed("string", "u8"),
                 child: None,
             }),
-            Literal::Rgb(_, _, _) => Err(ParserError::Base {
+            Literal::Rgb(_, _, _, _) => Err(ParserError::Base {
                 location: "",
                 kind: ErrorKind::CastFromToNotAllowed("rgb", "u8"),
                 child: None,
             }),
-            Literal::Rgbw(_, _, _, _) => Err(ParserError::Base {
+            Literal::Rgbw(_, _, _, _, _) => Err(ParserError::Base {
                 location: "",
                 kind: ErrorKind::CastFromToNotAllowed("rgbw", "u8"),
                 child: None,
@@ -242,12 +244,12 @@ impl TryFrom<Literal> for u16 {
                 kind: ErrorKind::CastFromToNotAllowed("string", "u16"),
                 child: None,
             }),
-            Literal::Rgb(_, _, _) => Err(ParserError::Base {
+            Literal::Rgb(_, _, _, _) => Err(ParserError::Base {
                 location: "",
                 kind: ErrorKind::CastFromToNotAllowed("rgb", "u16"),
                 child: None,
             }),
-            Literal::Rgbw(_, _, _, _) => Err(ParserError::Base {
+            Literal::Rgbw(_, _, _, _, _) => Err(ParserError::Base {
                 location: "",
                 kind: ErrorKind::CastFromToNotAllowed("rgbw", "u16"),
                 child: None,
@@ -282,12 +284,12 @@ impl TryFrom<Literal> for u32 {
                 kind: ErrorKind::CastFromToNotAllowed("string", "u32"),
                 child: None,
             }),
-            Literal::Rgb(_, _, _) => Err(ParserError::Base {
+            Literal::Rgb(_, _, _, _) => Err(ParserError::Base {
                 location: "",
                 kind: ErrorKind::CastFromToNotAllowed("rgb", "u32"),
                 child: None,
             }),
-            Literal::Rgbw(_, _, _, _) => Err(ParserError::Base {
+            Literal::Rgbw(_, _, _, _, _) => Err(ParserError::Base {
                 location: "",
                 kind: ErrorKind::CastFromToNotAllowed("rgbw", "u32"),
                 child: None,
@@ -322,12 +324,12 @@ impl TryFrom<Literal> for bool {
                 kind: ErrorKind::CastFromToNotAllowed("string", "bool"),
                 child: None,
             }),
-            Literal::Rgb(_, _, _) => Err(ParserError::Base {
+            Literal::Rgb(_, _, _, _) => Err(ParserError::Base {
                 location: "",
                 kind: ErrorKind::CastFromToNotAllowed("rgb", "bool"),
                 child: None,
             }),
-            Literal::Rgbw(_, _, _, _) => Err(ParserError::Base {
+            Literal::Rgbw(_, _, _, _, _) => Err(ParserError::Base {
                 location: "",
                 kind: ErrorKind::CastFromToNotAllowed("rgbw", "bool"),
                 child: None,
@@ -345,8 +347,8 @@ impl TryFrom<Literal> for Value {
             Literal::U16(value) => Ok(Value::U16(value)),
             Literal::U32(value) => Ok(Value::U32(value)),
             Literal::Bool(value) => Ok(Value::Bool(value)),
-            Literal::Rgb(r, g, b) => Ok(Value::Rgb(r, g, b)),
-            Literal::Rgbw(r, g, b, w) => Ok(Value::Rgbw(r, g, b, w)),
+            Literal::Rgb(r, g, b, brightness) => Ok(Value::Rgb(r, g, b, brightness)),
+            Literal::Rgbw(r, g, b, w, brightness) => Ok(Value::Rgbw(r, g, b, w, brightness)),
             Literal::String(_) => Err(ParserError::Base {
                 location: "",
                 kind: ErrorKind::CastFromToNotAllowed("string", "value"),
@@ -370,12 +372,12 @@ impl TryFrom<Literal> for MessageValue {
                 kind: ErrorKind::CastFromToNotAllowed("string", "message value"),
                 child: None,
             }),
-            Literal::Rgb(_, _, _) => Err(ParserError::Base {
+            Literal::Rgb(_, _, _, _) => Err(ParserError::Base {
                 location: "",
                 kind: ErrorKind::CastFromToNotAllowed("rgb", "message value"),
                 child: None,
             }),
-            Literal::Rgbw(_, _, _, _) => Err(ParserError::Base {
+            Literal::Rgbw(_, _, _, _, _) => Err(ParserError::Base {
                 location: "",
                 kind: ErrorKind::CastFromToNotAllowed("rgbw", "message value"),
                 child: None,
@@ -390,8 +392,8 @@ impl TryFrom<Literal> for BcmValue {
     fn try_from(literal: Literal) -> Result<Self, Self::Error> {
         match literal {
             Literal::U8(value) => Ok(BcmValue::Single(value)),
-            Literal::Rgb(r, g, b) => Ok(BcmValue::Rgb(r, g, b)),
-            Literal::Rgbw(r, g, b, w) => Ok(BcmValue::Rgbw(r, g, b, w)),
+            Literal::Rgb(r, g, b, brightness) => Ok(BcmValue::Rgb(r, g, b, brightness)),
+            Literal::Rgbw(r, g, b, w, brightness) => Ok(BcmValue::Rgbw(r, g, b, w, brightness)),
             Literal::U16(_) => Err(ParserError::Base {
                 location: "",
                 kind: ErrorKind::CastFromToNotAllowed("u16", "bcm value"),
@@ -436,12 +438,12 @@ impl TryFrom<Literal> for RelayValue {
                 kind: ErrorKind::CastFromToNotAllowed("u32", "relay value"),
                 child: None,
             }),
-            Literal::Rgb(_, _, _) => Err(ParserError::Base {
+            Literal::Rgb(_, _, _, _) => Err(ParserError::Base {
                 location: "",
                 kind: ErrorKind::CastFromToNotAllowed("rgb", "relay value"),
                 child: None,
             }),
-            Literal::Rgbw(_, _, _, _) => Err(ParserError::Base {
+            Literal::Rgbw(_, _, _, _, _) => Err(ParserError::Base {
                 location: "",
                 kind: ErrorKind::CastFromToNotAllowed("rgbw", "relay value"),
                 child: None,
@@ -492,12 +494,12 @@ impl TryFrom<Literal> for CronExpression {
                 kind: ErrorKind::CastFromToNotAllowed("bool", "cron expression"),
                 child: None,
             }),
-            Literal::Rgb(_, _, _) => Err(ParserError::Base {
+            Literal::Rgb(_, _, _, _) => Err(ParserError::Base {
                 location: "",
                 kind: ErrorKind::CastFromToNotAllowed("rgb", "cron expression"),
                 child: None,
             }),
-            Literal::Rgbw(_, _, _, _) => Err(ParserError::Base {
+            Literal::Rgbw(_, _, _, _, _) => Err(ParserError::Base {
                 location: "",
                 kind: ErrorKind::CastFromToNotAllowed("rgbw", "cron expression"),
                 child: None,
@@ -799,20 +801,22 @@ mod tests {
 
     #[test]
     fn rgb_test() {
-        assert_matches!(literal("#012345;input"), Ok((";input", Literal::Rgb(r, g, b))) => {
+        assert_matches!(literal("#01234567;input"), Ok((";input", Literal::Rgb(r, g, b, brightness))) => {
             assert_eq!(r, 0x01);
             assert_eq!(g, 0x23);
             assert_eq!(b, 0x45);
+            assert_eq!(brightness, 0x67);
         });
     }
 
     #[test]
     fn rgbw_test() {
-        assert_matches!(literal("#01234567;input"), Ok((";input", Literal::Rgbw(r, g, b, w))) => {
+        assert_matches!(literal("#0123456789;input"), Ok((";input", Literal::Rgbw(r, g, b, w, brightness))) => {
             assert_eq!(r, 0x01);
             assert_eq!(g, 0x23);
             assert_eq!(b, 0x45);
             assert_eq!(w, 0x67);
+            assert_eq!(brightness, 0x89);
         });
     }
 

@@ -71,7 +71,7 @@ mod tests {
         BcmChangeBrightnessProducer,
         ("0xabab~u16", 0xabab),
         ("0x01~u8", 0x01),
-        ("#234567", BcmValue::Rgb(0x23, 0x45, 0x67))
+        ("#23456789", BcmValue::Rgb(0x23, 0x45, 0x67, 0x89))
     );
     impl_tests_for_item_arg3!(
         bcm_change_brightness_state_producer,
@@ -88,7 +88,7 @@ mod tests {
         ("0xabab~u16", 0xabab),
         ("0x01~u8", 0x01),
         ("0xabababab~u32", 0xabab_abab),
-        ("#234567", BcmValue::Rgb(0x23, 0x45, 0x67))
+        ("#23456789", BcmValue::Rgb(0x23, 0x45, 0x67, 0x89))
     );
     impl_tests_for_item_arg4!(
         bcm_animate_brightness_state_producer,
